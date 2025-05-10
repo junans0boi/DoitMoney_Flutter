@@ -1,24 +1,24 @@
-# Flutter 기본
+# ── Flutter ─────────────────────────
 .dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
 .packages
 .pub-cache/
 build/
-flutter_*.png       # VS Code 등이 생성하는 스크린샷
-pubspec.lock
+.flutter-*.png       # VSCode 등에서 생성하는 스크린샷
 
-# Android
+# ── Android ─────────────────────────
 /android/.gradle/
 /android/local.properties
 /android/**/build/
 /android/app/**/*.iml
 /android/gradlew
 /android/gradlew.bat
-/android/gradle/
-/android/gradle.properties
 
-# iOS
+# ── iOS ─────────────────────────────
 /ios/Pods/
 /ios/Runner.xcworkspace/
+/ios/Runner.xcodeproj/project.xcworkspace/*
 /ios/Flutter/Flutter.framework/
 /ios/Flutter/Flutter.podspec
 /ios/ServiceDefinitions.json
@@ -28,12 +28,14 @@ pubspec.lock
 ios/**/*.pbxuser
 ios/**/*.mode1v3
 ios/**/*.mode2v3
+ios/Podfile.lock
 
-# IDE 설정 파일
+# ── Desktop IDEs ────────────────────
 .vscode/
 .idea/
 /*.iml
 
-# macOS, Linux
-*.DS_Store
+# ── macOS/Linux/Windows ─────────────
+.DS_Store
 *.swp
+Thumbs.db
