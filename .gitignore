@@ -5,7 +5,7 @@
 .packages
 .pub-cache/
 build/
-.flutter-*.png       # VSCode 등에서 생성하는 스크린샷
+.flutter-*.png
 
 # ── Android ─────────────────────────
 /android/.gradle/
