@@ -1,66 +1,39 @@
-# ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# ┃ Flutter / Dart
-# ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Flutter 기본
 .dart_tool/
-.flutter-plugins
-.flutter-plugins-dependencies
 .packages
-.pub/
+.pub-cache/
 build/
-.flutter_build/
-*.snapshot
+flutter_*.png       # VS Code 등이 생성하는 스크린샷
+pubspec.lock
 
-# 환경변수 설정 파일 (API Key 등)
-.env
-*.env
+# Android
+/android/.gradle/
+/android/local.properties
+/android/**/build/
+/android/app/**/*.iml
+/android/gradlew
+/android/gradlew.bat
+/android/gradle/
+/android/gradle.properties
 
-# ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# ┃ Android
-# ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# Gradle 캐시
-android/.gradle/
-android/gradle/
-**/gradle-wrapper.jar
+# iOS
+/ios/Pods/
+/ios/Runner.xcworkspace/
+/ios/Flutter/Flutter.framework/
+/ios/Flutter/Flutter.podspec
+/ios/ServiceDefinitions.json
+/.symlinks/
+/Flutter/ephemeral/
+/ios/*.xcuserstate
+ios/**/*.pbxuser
+ios/**/*.mode1v3
+ios/**/*.mode2v3
 
-# 로컬 SDK 경로 설정
-android/local.properties
-
-# 안드로이드 빌드 산출물
-android/app/build/
-android/build/
-
-# IntelliJ / Android Studio 설정
-*.iml
-.idea/
-*.ipr
-*.iws
-.gradle/
-.cxx/
-
-# ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# ┃ iOS
-# ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# Xcode 빌드 산출물
-ios/Pods/
-ios/Flutter/Flutter.framework
-ios/Flutter/Flutter.podspec
-ios/Runner.xcworkspace/
-ios/Runner.xcodeproj/xcuserdata/
-ios/build/
-DerivedData/
-
-# CocoaPods
-Podfile.lock
-
-# ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# ┃ VS Code
-# ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# IDE 설정 파일
 .vscode/
-
-# ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# ┃ macOS / Linux / Windows 공통
-# ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-.DS_Store
 .idea/
-Thumbs.db
-*.log
+/*.iml
+
+# macOS, Linux
+*.DS_Store
+*.swp
