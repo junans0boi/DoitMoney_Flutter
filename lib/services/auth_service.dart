@@ -8,11 +8,19 @@ class AuthService {
   static Future<bool> login(String email, String password) async {
     try {
       final res = await dio.post(
-        '/login',
+        '/user/login', // ← 수정: /login → /user/login
         data: {'email': email, 'password': password},
       );
-      return res.data['success'] as bool;
-    } on DioError {
+
+      // 상태 코드가 200 이면 body에서 success 필드를 꺼내고,
+      // 그렇지 않으면 false 리턴
+      if (res.statusCode == 200) {
+        return (res.data['success'] ?? false) as bool;
+      } else {
+        return false;
+      }
+    } catch (e) {
+      // 네트워크 에러 등
       return false;
     }
   }
@@ -71,7 +79,7 @@ class AuthService {
         queryParameters: {'phone': phone},
       );
       return res.data['available'] as bool;
-    } on DioError {
+    } on DioException {
       return false;
     }
   }
@@ -85,7 +93,7 @@ class AuthService {
       );
       final masked = res.data['email'] as String;
       return masked.isEmpty ? null : masked;
-    } on DioError {
+    } on DioException {
       return null;
     }
   }
@@ -97,7 +105,7 @@ class AuthService {
       if (res.statusCode != 200) {
         throw Exception('재설정 메일 발송 실패 (status ${res.statusCode})');
       }
-    } on DioError catch (e) {
+    } on DioException catch (e) {
       final status = e.response?.statusCode;
       final data = e.response?.data;
       throw Exception(
@@ -117,7 +125,7 @@ class AuthService {
       if (res.statusCode != 200) {
         throw Exception('비밀번호 재설정 실패 (status ${res.statusCode})');
       }
-    } on DioError catch (e) {
+    } on DioException catch (e) {
       final status = e.response?.statusCode;
       final data = e.response?.data;
       throw Exception(

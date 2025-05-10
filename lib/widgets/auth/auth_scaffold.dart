@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import '../../constants/typography.dart';
-import '../../constants/colors.dart';
 import 'progress_bar.dart';
 
 class AuthScaffold extends StatelessWidget {
-  final String? title;              // 헤더 텍스트
+  final String? title; // 헤더 텍스트
   final Widget body;
-  final Widget? footer;             // 버튼 등
+  final Widget? footer; // 버튼 등
   final bool showBack;
-  final double? progress;           // 0 ~ 1 (null 이면 숨김)
+  final double? progress; // 0 ~ 1 (null 이면 숨김)
 
   const AuthScaffold({
     super.key,
@@ -40,9 +39,11 @@ class AuthScaffold extends StatelessWidget {
                       ),
                     ),
                   if (title != null)
-                    Text(title!,
-                        style: textTheme.headlineMedium,
-                        textAlign: TextAlign.center),
+                    Text(
+                      title!,
+                      style: textTheme.headlineMedium,
+                      textAlign: TextAlign.center,
+                    ),
                 ],
               ),
             ),
@@ -55,8 +56,10 @@ class AuthScaffold extends StatelessWidget {
             // ─── BODY ───
             Expanded(
               child: SingleChildScrollView(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 32,
+                ),
                 child: body,
               ),
             ),

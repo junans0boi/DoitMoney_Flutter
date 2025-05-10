@@ -11,7 +11,7 @@ import 'screens/auth/find_pw_screen.dart';
 import 'screens/auth/reset_pw_screen.dart';
 
 // 메인 탭 화면
-import 'screens/home/home_page.dart';       // ← HomePage 를 import
+import 'screens/home/home_page.dart'; // ← HomePage 를 import
 // import 'screens/analysis/analysis_page.dart'; // 나중에 만들 분석 화면
 // import 'screens/ledger/ledger_page.dart';     // 가계부 화면
 // import 'screens/chart/chart_page.dart';       // 차트 화면
@@ -40,13 +40,13 @@ class PlanaryApp extends StatelessWidget {
       ),
       initialRoute: '/',
       routes: {
-        '/':               (context) => const SplashScreen(),
-        '/login':          (context) => const LoginPage(),
-        '/signup':         (context) => const SignupPage(),
-        '/find-id':        (context) => const FindIdPage(),
-        '/find-password':  (context) => const FindPwPage(),
+        '/': (context) => const SplashScreen(),
+        '/login': (context) => const LoginPage(),
+        '/signup': (context) => const SignupPage(),
+        '/find-id': (context) => const FindIdPage(),
+        '/find-password': (context) => const FindPwPage(),
         '/reset-password': (context) => const ResetPwPage(),
-        '/home':           (context) => const HomePage(),       // ← HomePage 로 변경
+        '/home': (context) => const HomeScreen(),
         // '/analysis':       (context) => const AnalysisPage(),  // 나중에 구현
         // '/ledger':         (context) => const LedgerPage(),
         // '/chart':          (context) => const ChartPage(),

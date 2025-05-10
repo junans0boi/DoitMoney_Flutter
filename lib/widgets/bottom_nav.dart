@@ -11,10 +11,10 @@ class BottomNav extends StatelessWidget {
   final OnTabSelected onTabSelected;
 
   const BottomNav({
-    Key? key,
+    super.key,
     required this.currentIndex,
     required this.onTabSelected,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -25,9 +25,9 @@ class BottomNav extends StatelessWidget {
       selectedItemColor: kPrimaryColor,
       unselectedItemColor: Colors.grey,
       items: const [
-        BottomNavigationBarItem(icon: Icon(Icons.home),       label: '홈'),
-        BottomNavigationBarItem(icon: Icon(Icons.bar_chart),  label: '분석'),
-        BottomNavigationBarItem(icon: Icon(Icons.book),       label: '가계부'),
+        BottomNavigationBarItem(icon: Icon(Icons.home), label: '홈'),
+        BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: '분석'),
+        BottomNavigationBarItem(icon: Icon(Icons.book), label: '가계부'),
         BottomNavigationBarItem(icon: Icon(Icons.show_chart), label: '차트'),
         BottomNavigationBarItem(icon: Icon(Icons.more_horiz), label: '더보기'),
       ],
