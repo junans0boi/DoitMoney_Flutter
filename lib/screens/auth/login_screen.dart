@@ -1,20 +1,20 @@
-// lib/screens/auth/login_screen.dart
-
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../widgets/auth/auth_input.dart';
 import '../../widgets/auth/auth_button.dart';
 import '../../widgets/auth/sns_button.dart';
 import '../../widgets/auth/auth_scaffold.dart';
-import '../../services/auth_service.dart';
+import 'package:doitmoney_flutter/providers/auth_provider.dart';
+import 'package:go_router/go_router.dart';
 
-class LoginPage extends StatefulWidget {
+class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
-
   @override
-  State<LoginPage> createState() => _LoginPageState();
+  ConsumerState<LoginPage> createState() => _LoginPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _LoginPageState extends ConsumerState<LoginPage> {
   final email = TextEditingController();
   final password = TextEditingController();
 
@@ -23,35 +23,37 @@ class _LoginPageState extends State<LoginPage> {
   @override
   void initState() {
     super.initState();
-    // 리스너 등록: 텍스트가 바뀔 때마다 rebuild
-    email.addListener(_onFormChanged);
-    password.addListener(_onFormChanged);
+    email.addListener(_onChanged);
+    password.addListener(_onChanged);
   }
 
-  void _onFormChanged() {
-    setState(() {});
-  }
+  void _onChanged() => setState(() {});
 
   @override
   void dispose() {
     email
-      ..removeListener(_onFormChanged)
+      ..removeListener(_onChanged)
       ..dispose();
     password
-      ..removeListener(_onFormChanged)
+      ..removeListener(_onChanged)
       ..dispose();
     super.dispose();
   }
 
   Future<void> _handleLogin() async {
     if (!formOk) return;
-    final success = await AuthService.login(email.text, password.text);
+
+    final ok = await ref
+        .read(authProvider.notifier)
+        .signIn(email.text.trim(), password.text.trim());
+
     if (!mounted) return;
-    if (success) {
-      Navigator.pushReplacementNamed(context, '/home');
+    if (ok) {
+      context.go('/'); // ← Navigator 대신 go_router
     } else {
-      ScaffoldMessenger.of(context)
-        .showSnackBar(const SnackBar(content: Text('로그인 실패')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('로그인 실패')));
     }
   }
 
@@ -74,17 +76,9 @@ class _LoginPageState extends State<LoginPage> {
             keyboardType: TextInputType.emailAddress,
           ),
           const SizedBox(height: 16),
-          AuthInput(
-            hint: '비밀번호',
-            controller: password,
-            obscure: true,
-          ),
+          AuthInput(hint: '비밀번호', controller: password, obscure: true),
           const SizedBox(height: 24),
-          AuthButton(
-            text: '로그인하기',
-            enabled: formOk,
-            onPressed: _handleLogin,
-          ),
+          AuthButton(text: '로그인하기', enabled: formOk, onPressed: _handleLogin),
           const SizedBox(height: 32),
           const Center(
             child: Text.rich(
@@ -127,40 +121,36 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Widget _snsRow() => Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          SnsButton(
-            background: const Color(0xFF03C75A),
-            child: const Text(
-              'N',
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
-            ),
-            onTap: () {}, // 네이버 로그인
+    mainAxisAlignment: MainAxisAlignment.center,
+    children: const [
+      SnsButton(
+        background: Color(0xFF03C75A),
+        child: Text(
+          'N',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+        ),
+      ),
+      SizedBox(width: 20),
+      SnsButton(
+        background: Color(0xFFFEE500),
+        child: Text(
+          'K',
+          style: TextStyle(
+            color: Color(0xFF191600),
+            fontWeight: FontWeight.w700,
           ),
-          const SizedBox(width: 20),
-          SnsButton(
-            background: const Color(0xFFFEE500),
-            child: const Text(
-              'K',
-              style: TextStyle(
-                color: Color(0xFF191600),
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            onTap: () {}, // 카카오 로그인
-          ),
-          const SizedBox(width: 20),
-          SnsButton(
-            background: const Color(0xFF4267B2),
-            child: const Icon(Icons.facebook, color: Colors.white),
-            onTap: () {}, // 페이스북 로그인
-          ),
-          const SizedBox(width: 20),
-          SnsButton(
-            background: Colors.black,
-            child: const Icon(Icons.apple, color: Colors.white),
-            onTap: () {}, // Apple 로그인
-          ),
-        ],
-      );
+        ),
+      ),
+      SizedBox(width: 20),
+      SnsButton(
+        background: Color(0xFF4267B2),
+        child: Icon(Icons.facebook, color: Colors.white),
+      ),
+      SizedBox(width: 20),
+      SnsButton(
+        background: Colors.black,
+        child: Icon(Icons.apple, color: Colors.white),
+      ),
+    ],
+  );
 }

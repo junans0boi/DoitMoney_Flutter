@@ -1,26 +1,35 @@
-// lib/services/auth_service.dart
-
-import 'package:dio/dio.dart';
-import '../api/api.dart';
+import 'package:dio/dio.dart' show DioException; // ← DioException 용
+import '../api/api.dart'; // dio 인스턴스
+import '../api/token_storage.dart'; // secureStorage
+import 'package:flutter/foundation.dart' show kIsWeb;
+import '../api/html_storage_stub.dart'
+    if (dart.library.html) 'dart:html'
+    as html;
 
 class AuthService {
   // ─── 로그인 ───
   static Future<bool> login(String email, String password) async {
+    // 로그인 요청 전, 기존에 남은 만료 토큰 삭제
+    await secureStorage.delete(key: 'jwt');
+    if (kIsWeb) html.window.localStorage.remove('jwt');
     try {
       final res = await dio.post(
-        '/user/login', // ← 수정: /login → /user/login
+        '/auth/login',
         data: {'email': email, 'password': password},
       );
 
-      // 상태 코드가 200 이면 body에서 success 필드를 꺼내고,
-      // 그렇지 않으면 false 리턴
-      if (res.statusCode == 200) {
-        return (res.data['success'] ?? false) as bool;
-      } else {
-        return false;
+      if (res.data['success'] != true) return false;
+
+      final token = res.data['token'] as String;
+
+      // 1) 토큰 저장
+      await secureStorage.write(key: 'jwt', value: token).catchError((_) {});
+      if (kIsWeb) {
+        html.window.localStorage['jwt'] = token;
       }
-    } catch (e) {
-      // 네트워크 에러 등
+
+      return true;
+    } on DioException {
       return false;
     }
   }
@@ -28,9 +37,10 @@ class AuthService {
   // 이메일 중복 체크
   static Future<bool> checkEmailAvailable(String email) async {
     final res = await dio.get(
-      '/check-email', // ← /api 뺀 상대경로
+      '/user/check-email',
       queryParameters: {'email': email},
     );
+
     return res.data['available'] as bool;
   }
 
@@ -59,23 +69,33 @@ class AuthService {
     required String password,
     required String username,
   }) async {
-    await dio.post(
-      '/auth/register', // ← 반드시 '/' 로 시작해야 baseUrl+'/auth/register'이 됩니다.
-      data: {
-        'email': email,
-        'code': code,
-        'phone': phone,
-        'password': password,
-        'username': username,
-      },
-    );
+    try {
+      await dio.post(
+        '/auth/register',
+        data: {
+          'email': email,
+          'code': code,
+          'phone': phone,
+          'password': password,
+          'username': username,
+        },
+      );
+    } on DioException catch (e) {
+      // 백엔드가 {"message":"..."} 형태로 내려주면 그대로 꺼냄
+      final data = e.response?.data;
+      final msg =
+          (data is Map && data['message'] != null)
+              ? data['message'] as String
+              : '회원가입 실패 (${e.response?.statusCode ?? ''})';
+      throw Exception(msg);
+    }
   }
 
   // ─── 전화번호 중복 체크 ───
   static Future<bool> checkPhoneAvailable(String phone) async {
     try {
       final res = await dio.get(
-        '/check-phone',
+        '/user/check-phone',
         queryParameters: {'phone': phone},
       );
       return res.data['available'] as bool;

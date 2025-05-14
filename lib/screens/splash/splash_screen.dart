@@ -1,19 +1,28 @@
 import 'package:flutter/material.dart';
-import '../../constants/colors.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class SplashScreen extends StatefulWidget {
+import '../../constants/colors.dart';
+import '../../providers/auth_provider.dart';
+
+class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
   @override
-  State<SplashScreen> createState() => _SplashScreenState();
+  ConsumerState<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> {
+class _SplashScreenState extends ConsumerState<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    Future.delayed(const Duration(seconds: 2),
-        () => Navigator.pushReplacementNamed(context, '/login'));
+    _bootstrap();
+  }
+
+  Future<void> _bootstrap() async {
+    await Future.delayed(const Duration(seconds: 2));
+    if (!mounted) return;
+    final loggedIn = ref.read(authProvider);
+    Navigator.pushReplacementNamed(context, loggedIn ? '/home' : '/login');
   }
 
   @override
@@ -44,7 +53,7 @@ class _SplashScreenState extends State<SplashScreen> {
                 width: 160,
               ),
             ),
-          )
+          ),
         ],
       ),
     );

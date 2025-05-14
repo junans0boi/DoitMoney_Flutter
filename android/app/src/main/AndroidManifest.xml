@@ -1,4 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!--SMS 권한 설정 -->
+    <uses-permission android:name="android.permission.RECEIVE_SMS" />
+    <uses-permission android:name="android.permission.READ_SMS" />
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+
     <application
         android:label="my_app"
         android:name="${applicationName}"
@@ -30,6 +35,14 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+        
+        <!-- 문자 수신 시 리시버 자동호출-->
+        <receiver android:name="com.shounakmulay.telephony.sms.SmsReceiver" android:exported="true">
+            <intent-filter>
+                <action android:name="android.provider.Telephony.SMS_RECEIVED"/>
+            </intent-filter>
+        </receiver>
+
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

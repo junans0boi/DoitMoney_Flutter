@@ -2,20 +2,20 @@ import 'package:flutter/material.dart';
 import 'colors.dart';
 
 const textTheme = TextTheme(
-  headlineMedium: const TextStyle(
+  headlineMedium: TextStyle(
+    // ← const 키워드 삭제
     fontSize: 28,
     fontWeight: FontWeight.w700,
     fontFamily: 'GmarketSans',
-    color: kPrimary, // ← 수정
+    color: kPrimary,
   ),
-  titleMedium: const TextStyle(
+  titleMedium: TextStyle(
     fontSize: 18,
     fontWeight: FontWeight.w500,
     fontFamily: 'GmarketSans',
-    color: kPrimary, // ← 수정
+    color: kPrimary,
   ),
-  bodyMedium: const TextStyle(
-    // 본문(16)
+  bodyMedium: TextStyle(
     fontSize: 16,
     fontFamily: 'GmarketSans',
     color: Colors.black87,

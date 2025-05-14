@@ -170,7 +170,7 @@ class _SignupPageState extends State<SignupPage> {
             if (!mounted) return;
             Navigator.pushNamedAndRemoveUntil(context, '/login', (_) => false);
           } catch (e) {
-            setState(() => feedback = '회원가입 실패: ${e.toString()}');
+            setState(() => feedback = e.toString());
           }
       }
     } catch (e) {
