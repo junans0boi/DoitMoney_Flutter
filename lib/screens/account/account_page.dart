@@ -28,10 +28,11 @@ class _AccountPageState extends State<AccountPage> {
   }
 
   Future<void> _refresh() async {
-    setState(_loadAccounts);
+    setState(() {
+      _loadAccounts();
+    });
     await _futureAccounts;
   }
-
   /* ───── CRUD 콜백 ───── */
 
   Future<void> _onAdd() async {
@@ -271,12 +272,18 @@ class _AccountPageState extends State<AccountPage> {
                       const Icon(Icons.chevron_right, color: Colors.black38),
                     ],
                   ),
-                  onTap:
-                      () => Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => AccountDetailPage(account: a),
-                        ),
+                  onTap: () async {
+                    final edited = await Navigator.of(context).push<bool>(
+                      MaterialPageRoute(
+                        builder: (_) => AccountDetailPage(account: a),
                       ),
+                    );
+                    if (edited == true) {
+                      setState(() {
+                        _loadAccounts();
+                      });
+                    }
+                  },
                 ),
               ),
             ),

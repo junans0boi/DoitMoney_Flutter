@@ -1,4 +1,5 @@
 // lib/providers/router_provider.dart
+import 'package:doitmoney_flutter/services/transaction_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -19,12 +20,13 @@ import '../screens/auth/reset_pw_screen.dart';
 
 // 독립 화면 --------------------------------------------------------
 import '../screens/account/add_account_page.dart';
-import '../widgets/ledger/add_transaction_page.dart';
+import '../screens/transaction/add_transaction_page.dart';
 
 // Shell -----------------------------------------------------------
 import '../widgets/main_shell.dart';
 import '../screens/more/more_page.dart';
 import '../screens/more/sms_alert_page.dart';
+import '../screens/transaction/transaction_detail_page.dart'; // ← import
 
 /// ──────────────────────────────────────────────────────────────
 final routerProvider = Provider<GoRouter>((ref) {
@@ -68,7 +70,8 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: '/ledger',
-            pageBuilder: (_, __) => const NoTransitionPage(child: LedgerPage()),
+            pageBuilder:
+                (_, __) => const NoTransitionPage(child: TransactionPage()),
           ),
           GoRoute(
             path: '/account',
@@ -87,6 +90,23 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/transaction/add',
         builder: (_, __) => const AddTransactionPage(),
+      ),
+      // 거래 수정
+      GoRoute(
+        path: '/transaction/edit',
+        builder: (ctx, state) {
+          final tx = state.extra as Transaction;
+          return AddTransactionPage(existing: tx);
+        },
+      ),
+
+      // 거래 상세
+      GoRoute(
+        path: '/transaction/detail',
+        builder: (ctx, state) {
+          final tx = state.extra as Transaction;
+          return TransactionDetailPage(transaction: tx);
+        },
       ),
     ],
   );

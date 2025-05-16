@@ -1,4 +1,4 @@
-// DoitMoney_Flutter/lib/screens/transaction/transaction_page.dart
+// DoItMoneyAI/DoitMoney_Flutter/lib/screens/transaction/transaction_page.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -6,33 +6,21 @@ import 'package:table_calendar/table_calendar.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import 'package:month_picker_dialog/month_picker_dialog.dart';
-
+import 'package:flutter_slidable/flutter_slidable.dart';
 import '../../constants/colors.dart';
 import '../../constants/styles.dart';
 import '../../services/transaction_service.dart';
-import '../../services/account_service.dart';
+import '../../services/account_service.dart'; // ← Account 타입 위해
+import '../../providers/transaction_providers.dart';
 
-/// --- Providers ---
-/// 선택된 월
+/// Providers
 final selectedMonthProvider = StateProvider<DateTime>((_) => DateTime.now());
-
-/// 마지막 새로고침 시각
 final lastRefreshProvider = StateProvider<DateTime>((_) => DateTime.now());
-
-/// 선택된 계정 필터 목록
 final selectedAccountsProvider = StateProvider<List<String>>((_) => []);
-
-/// 전체 거래
 final allTransactionsProvider = FutureProvider.autoDispose<List<Transaction>>(
   (_) => TransactionService.fetchTransactions(),
 );
 
-/// 전체 계정
-final accountsProvider = FutureProvider.autoDispose<List<Account>>(
-  (_) => AccountService.fetchAccounts(),
-);
-
-/// 필터 적용된 거래
 final filteredTransactionsProvider = Provider<List<Transaction>>((ref) {
   final txs = ref
       .watch(allTransactionsProvider)
@@ -47,39 +35,34 @@ final filteredTransactionsProvider = Provider<List<Transaction>>((ref) {
   }).toList();
 });
 
-/// 주간 탭을 위한 데이터 모델
-class _WeekSummary {
-  final DateTime start;
-  final DateTime end;
-  final int income;
-  final int expense;
-
-  _WeekSummary({
-    required this.start,
-    required this.end,
-    required this.income,
-    required this.expense,
-  });
-}
-
-class LedgerPage extends ConsumerWidget {
-  const LedgerPage({Key? key}) : super(key: key);
+class TransactionPage extends ConsumerWidget {
+  const TransactionPage({super.key});
 
   @override
-  Widget build(BuildContext c, WidgetRef ref) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return DefaultTabController(
       length: 3,
       child: Scaffold(
         backgroundColor: kBackground,
         appBar: AppBar(
+          toolbarHeight: 0,
           backgroundColor: kBackground,
           elevation: 0,
-          title: const _Header(),
-          bottom: const TabBar(
-            indicatorColor: kPrimaryColor,
-            labelColor: kPrimaryColor,
-            unselectedLabelColor: Colors.black54,
-            tabs: [Tab(text: '일일'), Tab(text: '주간'), Tab(text: '달력')],
+          title: const SizedBox.shrink(),
+          bottom: const PreferredSize(
+            preferredSize: Size.fromHeight(140),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _Header(),
+                TabBar(
+                  indicatorColor: kPrimaryColor,
+                  labelColor: kPrimaryColor,
+                  unselectedLabelColor: Colors.black54,
+                  tabs: [Tab(text: '일일'), Tab(text: '주간'), Tab(text: '달력')],
+                ),
+              ],
+            ),
           ),
         ),
         body: const TabBarView(
@@ -89,8 +72,8 @@ class LedgerPage extends ConsumerWidget {
           backgroundColor: kPrimaryColor,
           onPressed: () async {
             ref.read(lastRefreshProvider.notifier).state = DateTime.now();
-            await c.push('/transaction/add');
-            ref.refresh(allTransactionsProvider);
+            final result = await context.push<bool>('/transaction/add');
+            if (result == true) ref.invalidate(allTransactionsProvider);
           },
           child: const Icon(Icons.add),
         ),
@@ -99,94 +82,145 @@ class LedgerPage extends ConsumerWidget {
   }
 }
 
-/// 상단 헤더: 월 선택, 필터, 새로고침 시각, 통계
 class _Header extends ConsumerWidget {
-  const _Header({Key? key}) : super(key: key);
+  const _Header();
 
   @override
-  Widget build(BuildContext c, WidgetRef ref) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final month = ref.watch(selectedMonthProvider);
     final last = ref.watch(lastRefreshProvider);
+    final txs = ref.watch(filteredTransactionsProvider);
+
     final ago = DateTime.now().difference(last);
     final agoText =
         ago.inHours > 0 ? '${ago.inHours}시간 전' : '${ago.inMinutes}분 전';
 
-    final txs = ref.watch(filteredTransactionsProvider);
     final totalIn = txs
         .where((t) => t.amount > 0)
-        .fold(0, (p, t) => p + t.amount);
-    final totalOut = txs
-        .where((t) => t.amount < 0)
-        .fold(0, (p, t) => p + t.amount);
+        .fold(0, (a, t) => a + t.amount);
+    final totalOut =
+        txs.where((t) => t.amount < 0).fold(0, (a, t) => a + t.amount).abs();
 
-    return Row(
-      children: [
-        // 월 선택
-        const Expanded(child: _MonthSelector()),
-        // 필터
-        OutlinedButton.icon(
-          style: OutlinedButton.styleFrom(
-            side: const BorderSide(color: kInputBorder),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-          onPressed:
-              () => showModalBottomSheet(
-                context: c,
-                builder: (_) => const _FilterSheet(),
+    final headerTextStyle = kBodyText.copyWith(fontSize: 14);
+    final subHeaderTextStyle = kBodyText.copyWith(fontSize: 12);
+    final amountTextStyle = kTitleText.copyWith(fontSize: 18);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 1행: 월/년 선택 · 필터 · 새로고침 · 갱신시간
+          Row(
+            children: [
+              // 월/년 선택
+              Expanded(
+                child: InkWell(
+                  onTap: () async {
+                    final sel = await showMonthPicker(
+                      context: context,
+                      initialDate: month,
+                      firstDate: DateTime(2000),
+                      lastDate: DateTime.now(),
+                    );
+                    if (sel != null) {
+                      ref.read(selectedMonthProvider.notifier).state = sel;
+                    }
+                  },
+                  child: Row(
+                    children: [
+                      Text(
+                        '${month.year}년 ${month.month}월',
+                        style: headerTextStyle,
+                      ),
+                      const Icon(Icons.arrow_drop_down, color: kPrimaryColor),
+                    ],
+                  ),
+                ),
               ),
-          icon: const Icon(Icons.filter_alt_outlined),
-          label: const Text('필터'),
-        ),
-        const SizedBox(width: 8),
-        // 새로고침 시각
-        Text(agoText, style: kBodyText),
-        const SizedBox(width: 8),
-        // 통계
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text('총 수입', style: kBodyText),
-            Text(
-              '${NumberFormat('#,###').format(totalIn)}원',
-              style: kTitleText,
-            ),
-            const SizedBox(height: 4),
-            Text('총 지출', style: kBodyText),
-            Text(
-              '${NumberFormat('#,###').format(totalOut.abs())}원',
-              style: kTitleText.copyWith(color: kError),
-            ),
-          ],
-        ),
-      ],
+
+              // 필터 버튼
+              OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: kInputBorder),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                onPressed:
+                    () => showModalBottomSheet(
+                      context: context,
+                      builder: (_) => const _FilterSheet(),
+                    ),
+                icon: const Icon(Icons.filter_alt_outlined, size: 20),
+                label: Text('필터', style: headerTextStyle),
+              ),
+
+              const SizedBox(width: 8),
+
+              // 새로고침 버튼
+              IconButton(
+                icon: const Icon(Icons.refresh, size: 20),
+                color: kPrimaryColor,
+                onPressed: () {
+                  ref.read(lastRefreshProvider.notifier).state = DateTime.now();
+                  ref.invalidate(allTransactionsProvider);
+                },
+              ),
+
+              const SizedBox(width: 4),
+
+              // 마지막 갱신 시간
+              Text(agoText, style: subHeaderTextStyle),
+            ],
+          ),
+
+          const SizedBox(height: 8),
+
+          // 2행: 총 수입·총 지출
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Text(
+                '총 수입 : ${NumberFormat('#,###').format(totalIn)}원',
+                style: amountTextStyle,
+              ),
+              const SizedBox(width: 16),
+              Text(
+                '총 지출 : ${NumberFormat('#,###').format(totalOut)}원',
+                style: amountTextStyle.copyWith(color: kError),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
 
-/// 월 선택 위젯
 class _MonthSelector extends ConsumerWidget {
-  const _MonthSelector({Key? key}) : super(key: key);
+  const _MonthSelector({super.key});
 
   @override
-  Widget build(BuildContext c, WidgetRef ref) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final month = ref.watch(selectedMonthProvider);
     return InkWell(
       onTap: () async {
         final sel = await showMonthPicker(
-          context: c,
+          context: context,
           initialDate: month,
           firstDate: DateTime(2000),
           lastDate: DateTime.now(),
         );
-        if (sel != null) {
-          ref.read(selectedMonthProvider.notifier).state = sel;
-        }
+        if (sel != null) ref.read(selectedMonthProvider.notifier).state = sel;
       },
       child: Row(
         children: [
-          Text('${month.month}월', style: kTitleText),
+          Text('${month.year}년 ${month.month}월', style: kTitleText),
           const Icon(Icons.arrow_drop_down, color: kPrimaryColor),
         ],
       ),
@@ -194,12 +228,11 @@ class _MonthSelector extends ConsumerWidget {
   }
 }
 
-/// 필터 바텀시트 (계정 선택)
 class _FilterSheet extends ConsumerWidget {
-  const _FilterSheet({Key? key}) : super(key: key);
+  const _FilterSheet({super.key});
 
   @override
-  Widget build(BuildContext c, WidgetRef ref) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final accountsAsync = ref.watch(accountsProvider);
     final selected = Set<String>.from(ref.watch(selectedAccountsProvider));
 
@@ -207,7 +240,7 @@ class _FilterSheet extends ConsumerWidget {
       data:
           (list) => StatefulBuilder(
             builder:
-                (c2, setSt) => SizedBox(
+                (context, setState) => SizedBox(
                   height: 400,
                   child: Column(
                     children: [
@@ -229,14 +262,13 @@ class _FilterSheet extends ConsumerWidget {
                                 return CheckboxListTile(
                                   title: Text(a.institutionName),
                                   value: selected.contains(a.institutionName),
-                                  onChanged: (v) {
-                                    setSt(() {
-                                      if (v == true)
-                                        selected.add(a.institutionName);
-                                      else
-                                        selected.remove(a.institutionName);
-                                    });
-                                  },
+                                  onChanged:
+                                      (v) => setState(() {
+                                        if (v!)
+                                          selected.add(a.institutionName);
+                                        else
+                                          selected.remove(a.institutionName);
+                                      }),
                                 );
                               }).toList(),
                         ),
@@ -250,7 +282,7 @@ class _FilterSheet extends ConsumerWidget {
                           onPressed: () {
                             ref.read(selectedAccountsProvider.notifier).state =
                                 selected.toList();
-                            Navigator.pop(c2);
+                            Navigator.pop(context);
                           },
                           child: const Text(
                             '저장',
@@ -263,95 +295,110 @@ class _FilterSheet extends ConsumerWidget {
                 ),
           ),
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text('오류: $e')),
+      error: (e, _) => Center(child: Text('오류: \$e')),
     );
   }
 }
 
-/// 일일 탭
 class DailyTab extends ConsumerWidget {
   const DailyTab({Key? key}) : super(key: key);
 
   @override
-  Widget build(BuildContext c, WidgetRef ref) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final txs = ref.watch(filteredTransactionsProvider);
-    final map = <DateTime, List<Transaction>>{};
-    for (var t in txs) {
-      final day = DateTime(
-        t.transactionDate.year,
-        t.transactionDate.month,
-        t.transactionDate.day,
-      );
-      map.putIfAbsent(day, () => []).add(t);
-    }
-    final days = map.keys.toList()..sort((a, b) => b.compareTo(a));
 
     return ListView.builder(
-      itemCount: days.length,
+      itemCount: txs.length,
       itemBuilder: (ctx, i) {
-        final day = days[i];
-        final list = map[day]!;
-        final inSum = list
-            .where((t) => t.amount > 0)
-            .fold(0, (a, t) => a + t.amount);
-        final outSum = list
-            .where((t) => t.amount < 0)
-            .fold(0, (a, t) => a + t.amount);
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: double.infinity,
-              color: kBackground,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Text(
-                '${day.month}월 ${day.day}일 (${_weekday(day)})  '
-                '+${NumberFormat('#,###').format(inSum)} | -${NumberFormat('#,###').format(outSum.abs())}',
-                style: kBodyText,
+        final t = txs[i];
+        return Slidable(
+          key: ValueKey(t.id),
+          endActionPane: ActionPane(
+            motion: DrawerMotion(),
+            children: [
+              SlidableAction(
+                onPressed: (slidableContext) async {
+                  // 1) dialogContext 로 다이얼로그를 닫게끔 builder 에 context 전달
+                  final shouldDelete = await showDialog<bool>(
+                    context: slidableContext,
+                    builder: (dialogContext) {
+                      return AlertDialog(
+                        title: const Text('삭제 확인'),
+                        content: const Text('정말 이 거래를 삭제하시겠습니까?'),
+                        actions: [
+                          TextButton(
+                            onPressed:
+                                () => Navigator.of(dialogContext).pop(false),
+                            child: const Text('취소'),
+                          ),
+                          TextButton(
+                            onPressed:
+                                () => Navigator.of(dialogContext).pop(true),
+                            child: const Text('삭제'),
+                          ),
+                        ],
+                      );
+                    },
+                  );
+
+                  if (shouldDelete == true) {
+                    try {
+                      await TransactionService.deleteTransaction(t.id);
+                      // 2) 슬라이더 닫기
+                      Slidable.of(slidableContext)?.close();
+                      // 3) 데이터 재요청
+                      ref.invalidate(allTransactionsProvider);
+                      ScaffoldMessenger.of(
+                        context,
+                      ).showSnackBar(const SnackBar(content: Text('삭제되었습니다')));
+                    } catch (e) {
+                      ScaffoldMessenger.of(
+                        context,
+                      ).showSnackBar(SnackBar(content: Text('삭제 실패: $e')));
+                    }
+                  } else {
+                    // 취소 시에도 슬라이더 닫아 주기
+                    Slidable.of(slidableContext)?.close();
+                  }
+                },
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+                icon: Icons.delete,
+                label: '삭제',
               ),
-            ),
-            ...list.map((t) {
-              return ListTile(
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-                title: Text(
-                  t.description,
-                  style: kBodyText.copyWith(fontWeight: FontWeight.w600),
-                ),
-                subtitle: Text(
-                  t.accountName,
-                  style: kBodyText.copyWith(color: Colors.black45),
-                ),
-                trailing: Text(
-                  '${NumberFormat('#,###').format(t.amount)}원',
-                  style: kBodyText.copyWith(
-                    color: t.amount < 0 ? kError : kSuccess,
-                  ),
-                ),
+            ],
+          ),
+          child: ListTile(
+            title: Text(t.description),
+            subtitle: Text(t.accountName),
+            trailing: Text('${t.amount}원'),
+            onTap: () async {
+              final edited = await context.push<bool>(
+                '/transaction/detail',
+                extra: t,
               );
-            }).toList(),
-          ],
+              if (edited == true) {
+                ref.invalidate(allTransactionsProvider);
+              }
+            },
+          ),
         );
       },
     );
   }
-
-  String _weekday(DateTime d) =>
-      ['월', '화', '수', '목', '금', '토', '일'][d.weekday - 1];
 }
 
-/// 주간 탭
 class WeeklyTab extends ConsumerWidget {
-  const WeeklyTab({Key? key}) : super(key: key);
+  const WeeklyTab({super.key});
 
   @override
-  Widget build(BuildContext c, WidgetRef ref) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final txs = ref.watch(filteredTransactionsProvider);
     final month = ref.watch(selectedMonthProvider);
     final first = DateTime(month.year, month.month, 1);
     final last = DateTime(month.year, month.month + 1, 0);
 
-    // 주차별 합계 계산
-    final summaries = <_WeekSummary>[];
+    final summaries = <Map<String, dynamic>>[];
     for (
       var start = first;
       start.isBefore(last) || start.isAtSameMomentAs(last);
@@ -361,23 +408,33 @@ class WeeklyTab extends ConsumerWidget {
           start.add(const Duration(days: 6)).isAfter(last)
               ? last
               : start.add(const Duration(days: 6));
-      final list = txs.where(
+      final weekTxs = txs.where(
         (t) =>
             !t.transactionDate.isBefore(start) &&
             !t.transactionDate.isAfter(end),
       );
-      final income = list
+      final income = weekTxs
           .where((t) => t.amount > 0)
-          .fold(0, (a, t) => a + t.amount);
+          .fold(0, (sum, t) => sum + t.amount);
       final expense =
-          list.where((t) => t.amount < 0).fold(0, (a, t) => a + t.amount).abs();
-      summaries.add(
-        _WeekSummary(start: start, end: end, income: income, expense: expense),
-      );
+          weekTxs
+              .where((t) => t.amount < 0)
+              .fold(0, (sum, t) => sum + t.amount)
+              .abs();
+      summaries.add({
+        'start': start,
+        'end': end,
+        'income': income,
+        'expense': expense,
+      });
     }
 
-    final idx = summaries.isEmpty ? -1 : (summaries.length > 2 ? 2 : 0);
-    final diff = idx >= 0 ? summaries[idx].expense - summaries[idx].income : 0;
+    final idx =
+        summaries.isEmpty
+            ? -1
+            : (summaries.length > 2 ? 2 : summaries.length - 1);
+    final diff =
+        idx >= 0 ? summaries[idx]['expense'] - summaries[idx]['income'] : 0;
 
     return Column(
       children: [
@@ -397,18 +454,32 @@ class WeeklyTab extends ConsumerWidget {
               child: BarChart(
                 BarChartData(
                   alignment: BarChartAlignment.spaceAround,
+                  maxY:
+                      summaries
+                          .expand(
+                            (s) => [s['income'] as int, s['expense'] as int],
+                          )
+                          .reduce((a, b) => a > b ? a : b)
+                          .toDouble() *
+                      1.2,
                   barGroups:
                       summaries.asMap().entries.map((e) {
                         final s = e.value;
                         return BarChartGroupData(
                           x: e.key,
                           barRods: [
-                            BarChartRodData(toY: s.income.toDouble()),
-                            BarChartRodData(toY: s.expense.toDouble()),
+                            BarChartRodData(
+                              toY: (s['income'] as int).toDouble(),
+                            ),
+                            BarChartRodData(
+                              toY: (s['expense'] as int).toDouble(),
+                            ),
                           ],
                         );
                       }).toList(),
                   titlesData: const FlTitlesData(show: false),
+                  borderData: FlBorderData(show: false),
+                  gridData: FlGridData(show: false),
                 ),
               ),
             ),
@@ -418,11 +489,13 @@ class WeeklyTab extends ConsumerWidget {
             return ListTile(
               contentPadding: const EdgeInsets.symmetric(horizontal: 16),
               title: Text(
-                '${e.key + 1}주차 [${s.start.month}.${s.start.day}~${s.end.month}.${s.end.day}]',
+                '${e.key + 1}주차 [${(s['start'] as DateTime).month}.${(s['start'] as DateTime).day}~'
+                '${(s['end'] as DateTime).month}.${(s['end'] as DateTime).day}]',
                 style: kBodyText,
               ),
               trailing: Text(
-                '+${NumberFormat('#,###').format(s.income)} | -${NumberFormat('#,###').format(s.expense)}',
+                '+${NumberFormat('#,###').format(s['income'])} | '
+                '-${NumberFormat('#,###').format(s['expense'])}',
                 style: kBodyText,
               ),
             );
@@ -433,9 +506,9 @@ class WeeklyTab extends ConsumerWidget {
   }
 }
 
-/// 달력 탭
 class CalendarTab extends ConsumerStatefulWidget {
-  const CalendarTab({Key? key}) : super(key: key);
+  const CalendarTab({super.key});
+
   @override
   ConsumerState<CalendarTab> createState() => _CalendarTabState();
 }
@@ -445,8 +518,11 @@ class _CalendarTabState extends ConsumerState<CalendarTab> {
   DateTime? _selected;
 
   @override
-  Widget build(BuildContext c) {
+  Widget build(BuildContext context) {
+    // 1) 필터링된 거래 가져오기
     final txs = ref.watch(filteredTransactionsProvider);
+
+    // 2) 날짜별 이벤트 맵 생성
     final events = <DateTime, List<Transaction>>{};
     for (var t in txs) {
       final d = DateTime(
@@ -457,37 +533,125 @@ class _CalendarTabState extends ConsumerState<CalendarTab> {
       events.putIfAbsent(d, () => []).add(t);
     }
 
+    // 3) 현재 선택된 날짜의 거래 리스트
+    final selectedEvents =
+        _selected != null ? events[_selected!]! : <Transaction>[];
+
     return Column(
       children: [
+        // 달력
         TableCalendar<Transaction>(
           firstDay: DateTime(2000),
           lastDay: DateTime(2100),
           focusedDay: _focused,
           selectedDayPredicate: (d) => isSameDay(_selected, d),
           eventLoader: (d) => events[d] ?? [],
+          headerVisible: false,
           calendarStyle: CalendarStyle(
             todayDecoration: BoxDecoration(
-              color: kPrimaryColor.withOpacity(0.2),
+              color: kPrimaryColor.withAlpha(50),
               shape: BoxShape.circle,
             ),
-            selectedDecoration: const BoxDecoration(
-              color: kPrimaryColor,
-              shape: BoxShape.circle,
-            ),
-            markerDecoration: const BoxDecoration(
-              color: kError,
+            selectedDecoration: BoxDecoration(
+              color: kPrimaryColor.withAlpha(100),
               shape: BoxShape.circle,
             ),
           ),
-          headerVisible: false,
-          onDaySelected: (sel, foc) {
+          calendarBuilders: CalendarBuilders(
+            defaultBuilder: (context, day, focusedDay) {
+              final dayEvents =
+                  events[DateTime(day.year, day.month, day.day)] ?? [];
+              final inSum = dayEvents
+                  .where((e) => e.amount > 0)
+                  .fold(0, (a, e) => a + e.amount);
+              final outSum = dayEvents
+                  .where((e) => e.amount < 0)
+                  .fold(0, (a, e) => a + e.amount.abs());
+              return Container(
+                margin: const EdgeInsets.all(4),
+                padding: const EdgeInsets.all(6),
+                decoration:
+                    isSameDay(_selected, day)
+                        ? BoxDecoration(
+                          color: kPrimaryColor.withAlpha(50),
+                          shape: BoxShape.circle,
+                        )
+                        : null,
+                child: Column(
+                  children: [
+                    Text(
+                      '${day.day}',
+                      style: kBodyText.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                    if (inSum > 0)
+                      Text(
+                        '+${NumberFormat('#,###').format(inSum)}',
+                        style: kBodyText.copyWith(fontSize: 12),
+                      ),
+                    if (outSum > 0)
+                      Text(
+                        '-${NumberFormat('#,###').format(outSum)}',
+                        style: kBodyText.copyWith(fontSize: 12, color: kError),
+                      ),
+                  ],
+                ),
+              );
+            },
+          ),
+          onDaySelected: (selectedDay, focusedDay) {
             setState(() {
-              _selected = sel;
-              _focused = foc;
+              _selected = selectedDay;
+              _focused = focusedDay;
             });
           },
         ),
-        if (_selected != null) const Expanded(child: DailyTab()),
+
+        // 선택된 날짜 거래 목록 헤더
+        if (_selected != null) ...[
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Text(
+              '${_selected!.month}월 ${_selected!.day}일 거래 목록',
+              style: kBodyText.copyWith(fontWeight: FontWeight.w600),
+            ),
+          ),
+          const Divider(),
+
+          // 4) 거래 리스트
+          Expanded(
+            child: ListView.builder(
+              itemCount: selectedEvents.length,
+              itemBuilder: (ctx, i) {
+                final t = selectedEvents[i];
+                return ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                  title: Text(
+                    t.description,
+                    style: kBodyText.copyWith(fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: Text(
+                    t.accountName,
+                    style: kBodyText.copyWith(color: Colors.black45),
+                  ),
+                  trailing: Text(
+                    '${NumberFormat('#,###').format(t.amount)}원',
+                    style: kBodyText.copyWith(
+                      color: t.amount < 0 ? kError : kSuccess,
+                    ),
+                  ),
+                  onTap: () async {
+                    final result = await context.push<bool>(
+                      '/transaction/edit',
+                      extra: t,
+                    );
+                    if (result == true) ref.invalidate(allTransactionsProvider);
+                  },
+                );
+              },
+            ),
+          ),
+        ],
       ],
     );
   }

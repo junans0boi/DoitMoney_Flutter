@@ -1,37 +1,23 @@
 import 'package:dio/dio.dart' show DioException; // ← DioException 용
 import '../api/api.dart'; // dio 인스턴스
-import '../api/token_storage.dart'; // secureStorage
-import 'package:flutter/foundation.dart' show kIsWeb;
-import '../api/html_storage_stub.dart'
-    if (dart.library.html) 'dart:html'
-    as html;
 
 class AuthService {
-  // ─── 로그인 ───
+  /// 로그인 : 200 OK 만 확인하면 쿠키가 세션을 관리합니다
   static Future<bool> login(String email, String password) async {
-    // 로그인 요청 전, 기존에 남은 만료 토큰 삭제
-    await secureStorage.delete(key: 'jwt');
-    if (kIsWeb) html.window.localStorage.remove('jwt');
     try {
       final res = await dio.post(
         '/auth/login',
         data: {'email': email, 'password': password},
       );
-
-      if (res.data['success'] != true) return false;
-
-      final token = res.data['token'] as String;
-
-      // 1) 토큰 저장
-      await secureStorage.write(key: 'jwt', value: token).catchError((_) {});
-      if (kIsWeb) {
-        html.window.localStorage['jwt'] = token;
-      }
-
-      return true;
+      return res.statusCode == 200;
     } on DioException {
       return false;
     }
+  }
+
+  /// 로그아웃
+  static Future<void> logout() async {
+    await dio.post('/auth/logout'); // SecurityConfig 의 logoutUrl
   }
 
   // 이메일 중복 체크

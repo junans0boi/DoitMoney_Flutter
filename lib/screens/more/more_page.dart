@@ -1,9 +1,8 @@
 // lib/screens/more/more_page.dart
+import 'package:doitmoney_flutter/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../constants/colors.dart';
-import 'package:doitmoney_flutter/providers/user_provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class MorePage extends ConsumerWidget {
@@ -88,8 +87,8 @@ class MorePage extends ConsumerWidget {
               color: kPrimaryColor.withAlpha((0.08 * 255).round()),
               borderRadius: BorderRadius.circular(16),
             ),
-            child: Row(
-              children: const [
+            child: const Row(
+              children: [
                 CircleAvatar(
                   radius: 14,
                   backgroundColor: kPrimaryColor,
@@ -111,9 +110,9 @@ class MorePage extends ConsumerWidget {
           const SizedBox(height: 32),
 
           /* ── 단축 메뉴 4개 ─────────────────────────── */
-          Row(
+          const Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: const [
+            children: [
               _QuickMenu(icon: Icons.campaign, label: '공지사항'),
               _QuickMenu(icon: Icons.event_note, label: '이벤트'),
               _QuickMenu(icon: Icons.help_outline, label: '자주묻는질문'),
@@ -161,14 +160,9 @@ class MorePage extends ConsumerWidget {
                   decoration: TextDecoration.underline,
                 ),
               ),
-
               onPressed: () async {
-                final prefs = await SharedPreferences.getInstance();
-                await prefs.remove('accessToken');
-                ref.read(userProvider.notifier).logout();
-                if (context.mounted) {
-                  context.go('/login');
-                }
+                await ref.read(authProvider.notifier).signOut();
+                if (context.mounted) context.go('/login');
               },
               child: const Text('로그아웃'),
             ),

@@ -70,8 +70,6 @@ class HomeTab extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-
-          // TODO: 변동지출 섹션 ------------------------------------------------
         ],
       ),
     );
@@ -84,7 +82,6 @@ class _SectionCard extends StatelessWidget {
   final String subtitle;
   final List<Widget> children;
   const _SectionCard({
-    super.key,
     required this.title,
     required this.subtitle,
     required this.children,
@@ -131,7 +128,7 @@ class _SectionCard extends StatelessWidget {
 class _IconItem extends StatelessWidget {
   final IconData icon;
   final String label;
-  const _IconItem({super.key, required this.icon, required this.label});
+  const _IconItem({required this.icon, required this.label});
 
   @override
   Widget build(BuildContext context) {
