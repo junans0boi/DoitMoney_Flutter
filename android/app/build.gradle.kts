@@ -1,38 +1,48 @@
 plugins {
     id("com.android.application")
-    kotlin("android")
-    id("dev.flutter.flutter-gradle-plugin") 
-    id("com.google.gms.google-services")  
+    id("kotlin-android")
+    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
+    id("dev.flutter.flutter-gradle-plugin")
+    id("com.google.gms.google-services")
 }
 
-
 android {
-    namespace  = "com.example.doitmoney" // ← manifest 와 동일하게
-    compileSdk = 35                   // ▲ 35
-
-    defaultConfig {
-        applicationId = "com.example.doitmoney"
-        minSdk  = 23                  // ▲ 21 → 23  (another_telephony 때문)
-        targetSdk = 35
-        versionCode  = flutter.versionCode
-        versionName  = flutter.versionName
-    }
+    namespace = "com.example.doitmoney_flutter"
+    compileSdk = flutter.compileSdkVersion
+    ndkVersion = "27.0.12077973"
 
     compileOptions {
-        sourceCompatibility          = JavaVersion.VERSION_17
-        targetCompatibility          = JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
         isCoreLibraryDesugaringEnabled = true
     }
-    kotlinOptions { jvmTarget = "17" }
+
+    kotlinOptions {
+        jvmTarget = JavaVersion.VERSION_11.toString()
+    }
+
+    defaultConfig {
+        applicationId = "com.example.doitmoney_flutter"
+    
+        minSdk = 23
+        targetSdk = flutter.targetSdkVersion
+        versionCode = flutter.versionCode
+        versionName = flutter.versionName
+    }
 
     buildTypes {
-        getByName("release") {
+        release {
+            // TODO: Add your own signing config for the release build.
+            // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
         }
     }
 }
 
+flutter {
+    source = "../.."
+}
 dependencies {
+    // desugaring 라이브러리 추가
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.3")
 }
-

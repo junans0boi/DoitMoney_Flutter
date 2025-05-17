@@ -1,4 +1,4 @@
-# my_app
+# doitmoney_flutter
 
 A new Flutter project.
 

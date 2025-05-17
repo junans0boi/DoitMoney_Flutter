@@ -48,7 +48,6 @@ dependencies:
   month_picker_dialog: ^2.12.0
   fl_chart: ^0.64.0
 
-  # SMS leader
   # SMS 수신
   another_telephony: ^0.4.1 # ← pub.dev에 36일 전 릴리스, Dart 3 호환
   permission_handler: ^11.3.0 # POST_NOTIFICATIONS, RECEIVE_SMS 등 런타임 권한
@@ -59,7 +58,8 @@ dependencies:
   flutter_local_notifications: ^17.0.0
 
   cupertino_icons: ^1.0.2
-  shared_preferences: ^2.2.2
+  sqflite: ^2.4.2
+
 # ─────────────────────── 개발용 ───────────────────────
 dev_dependencies:
   flutter_test:

@@ -7,9 +7,9 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:229574309922:android:0da6f27a98ea410ffeb27b",
+        "mobilesdk_app_id": "1:229574309922:android:5809b04866947eccfeb27b",
         "android_client_info": {
-          "package_name": "com.example.doitmoney"
+          "package_name": "com.example.doitmoney_flutter"
         }
       },
       "oauth_client": [],
