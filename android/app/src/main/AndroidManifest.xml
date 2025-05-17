@@ -1,4 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!--SMS
     권한 설정 -->
     <!-- SMS -->
     <uses-permission
