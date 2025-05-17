@@ -1,5 +1,5 @@
 import 'package:dio/dio.dart' show DioException; // ← DioException 용
-import '../api/api.dart'; // dio 인스턴스
+import '../api/dio_client.dart';
 
 class AuthService {
   /// 로그인 : 200 OK 만 확인하면 쿠키가 세션을 관리합니다

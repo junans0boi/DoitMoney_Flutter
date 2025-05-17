@@ -1,6 +1,6 @@
 // lib/providers/auth_provider.dart
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../api/api.dart';
+import '../api/dio_client.dart';
 import '../services/auth_service.dart';
 
 /// <로그인 여부>만 관리하는 StateNotifier<bool>

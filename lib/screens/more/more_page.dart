@@ -127,7 +127,7 @@ class MorePage extends ConsumerWidget {
             title: const Text('자동 로그인'),
             value: true,
             onChanged: (v) {},
-            activeThumbColor: kPrimaryColor, // ✅ 대체 속성
+            activeTrackColor: kPrimaryColor, // ✅ 대체 속성
           ),
 
           /* ── 문자 알림 서비스 진입 버튼 ─────────────── */

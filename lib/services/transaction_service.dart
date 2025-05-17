@@ -1,5 +1,5 @@
 // lib/services/transaction_service.dart
-import '../api/api.dart';
+import '../api/dio_client.dart';
 
 /// 거래 유형 열거형
 enum TransactionType { income, expense, transfer }

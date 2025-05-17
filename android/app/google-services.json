@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "229574309922",
+    "project_id": "doitmoney-flutter",
+    "storage_bucket": "doitmoney-flutter.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:229574309922:android:0da6f27a98ea410ffeb27b",
+        "android_client_info": {
+          "package_name": "com.example.doitmoney"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAKX-RbvQFuWADO8FZeWBCt1r9Ne-zmGYk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

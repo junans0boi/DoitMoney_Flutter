@@ -1,81 +1,42 @@
-// lib/services/sms_service.dart
+import 'package:permission_handler/permission_handler.dart';
+import 'package:another_telephony/telephony.dart';
 
-import 'package:telephony/telephony.dart';
-import 'transaction_service.dart'; // ← 가계부 등록 서비스
-import 'package:shared_preferences/shared_preferences.dart'; // 알림 기능 활성화 여부 저장
+import '../utils/txn_parser.dart';
+import 'transaction_service.dart';
 
 class SmsService {
-  final Telephony telephony = Telephony.instance;
+  final _telephony = Telephony.instance;
 
   Future<void> init() async {
-    final prefs = await SharedPreferences.getInstance();
-    final enabled = prefs.getBool('sms_alert_enabled') ?? false;
-    if (!enabled) return;
+    // ① 권한
+    final sms = await Permission.sms.request();
+    final notif = await Permission.notification.request();
+    if (!sms.isGranted) return;
 
-    final granted = await telephony.requestPhonePermissions;
-    if (granted ?? false) {
-      telephony.listenIncomingSms(
-        onNewMessage: _onMessage,
-        onBackgroundMessage: _onBackground,
-        listenInBackground: true,
-      );
+    // ② background isolate 등록
+    await _telephony.requestPhonePermissions; // Android 12 대응
+    _telephony.listenIncomingSms(
+      onNewMessage: _onMessage,
+      onBackgroundMessage: _backgroundHandler,
+      listenInBackground: true,
+    );
+  }
+
+  /* ───────── 포그라운드 ───────── */
+  void _onMessage(SmsMessage msg) => _handle(msg.body);
+
+  /* ───────── 백그라운드 ───────── */
+  static void _backgroundHandler(SmsMessage msg) => _handle(msg.body);
+
+  /* ───────── 공용 처리 ───────── */
+  static Future<void> _handle(String? body) async {
+    if (body == null) return;
+    final parsed = parseMessage(body);
+    if (parsed == null) return; // 규칙 미적용
+    try {
+      await TransactionService.addTransaction(parsed.toModel());
+    } catch (_) {
+      /* 로그만 */
     }
-  }
-
-  void _onMessage(SmsMessage message) {
-    _parseAndSave(message);
-  }
-
-  static void _onBackground(SmsMessage message) {
-    _parseAndSave(message);
-  }
-
-  static void _parseAndSave(SmsMessage message) {
-    final body = message.body ?? '';
-    final sender = message.address ?? '';
-
-    // 카드사/알림 발신자 필터 리스트
-    const knownSenders = [
-      '국민카드',
-      '신한카드',
-      '우리카드',
-      '하나카드',
-      '롯데카드',
-      '삼성카드',
-      '현대카드',
-      'BC카드',
-      'NH농협카드',
-      '1588',
-      '1566',
-      '1522',
-      'web발신',
-      'webkakao',
-    ];
-
-    final isFromKnownSender = knownSenders.any(
-      (s) =>
-          sender.toLowerCase().contains(s.toLowerCase()) ||
-          body.toLowerCase().contains(s.toLowerCase()),
-    );
-    if (!isFromKnownSender) return;
-
-    // 예: "... 승인 12,300원 CU 편의점"
-    final match = RegExp(r'(승인|출금)\s([\d,]+)원\s(.+)').firstMatch(body);
-    if (match == null) return;
-
-    final amount = int.tryParse(match.group(2)!.replaceAll(',', '')) ?? 0;
-    final desc = match.group(3)!;
-
-    final tx = Transaction(
-      id: 0,
-      transactionDate: DateTime.now(),
-      transactionType: TransactionType.expense, // 출금은 지출
-      category: '', // 필요하면 카테고리 매핑 추가
-      amount: -amount,
-      description: desc,
-      accountName: sender.isNotEmpty ? sender : '알 수 없음',
-    );
-
-    TransactionService.addTransaction(tx);
   }
 }

@@ -4,6 +4,9 @@ version: 1.0.0+1
 
 environment:
   sdk: ">=3.7.2 <4.0.0"
+dependency_overrides:
+  # 모바일에서 쓰기 안전한 last-stable 버전
+  web_socket_channel: 2.4.0 # ← 이미 내려갔지만 한 번 더 명시
 
 # ─────────────────────── 의존성 ───────────────────────
 dependencies:
@@ -12,9 +15,11 @@ dependencies:
 
   # 네트워킹 · 상태
   dio: ^5.3.2
-  flutter_secure_storage: ^8.0.0 
+  dio_cookie_manager: ^3.1.0 # 그대로
+  cookie_jar: ^4.0.8
+  flutter_secure_storage: ^8.0.0
   flutter_riverpod: ^2.6.1
-  go_router: ^10.1.2 
+  go_router: ^10.1.2
 
   # 날짜/숫자, 캘린더
   intl: ^0.18.1
@@ -35,17 +40,24 @@ dependencies:
   google_mlkit_text_recognition: ^0.11.0
   image: ^4.1.3
   path_provider: ^2.1.2
-  path: ^1.9.0            # basename 등
+  path: ^1.9.0 # basename 등
 
   # 파일/이미지 선택
-  image_picker: ^1.0.7             # 모바일
-  file_picker: ^6.1.1              # 웹 공통
-    
+  image_picker: ^1.0.7 # 모바일
+  file_picker: ^10.1.9
   month_picker_dialog: ^2.12.0
   fl_chart: ^0.64.0
 
   # SMS leader
-  telephony: ^0.2.0
+  # SMS 수신
+  another_telephony: ^0.4.1 # ← pub.dev에 36일 전 릴리스, Dart 3 호환
+  permission_handler: ^11.3.0 # POST_NOTIFICATIONS, RECEIVE_SMS 등 런타임 권한
+
+  # FCM + 로컬 알림
+  firebase_core: ^3.1.0
+  firebase_messaging: ^15.0.0
+  flutter_local_notifications: ^17.0.0
+
   cupertino_icons: ^1.0.2
   shared_preferences: ^2.2.2
 # ─────────────────────── 개발용 ───────────────────────
@@ -61,16 +73,16 @@ flutter:
   uses-material-design: true
 
   assets:
-    - assets/images/doitmoney_logo.png
-    - assets/images/empty_assets.png
-    - assets/banks/
+  - assets/images/doitmoney_logo.png
+  - assets/images/empty_assets.png
+  - assets/banks/
 
   fonts:
-    - family: GmarketSans
-      fonts:
-        - asset: assets/fonts/GmarketSansTTF/GmarketSansLight.otf
-          weight: 300
-        - asset: assets/fonts/GmarketSansTTF/GmarketSansMedium.otf
-          weight: 500
-        - asset: assets/fonts/GmarketSansTTF/GmarketSansBold.otf
-          weight: 700
+  - family: GmarketSans
+    fonts:
+    - asset: assets/fonts/GmarketSansTTF/GmarketSansLight.otf
+      weight: 300
+    - asset: assets/fonts/GmarketSansTTF/GmarketSansMedium.otf
+      weight: 500
+    - asset: assets/fonts/GmarketSansTTF/GmarketSansBold.otf
+      weight: 700

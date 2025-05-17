@@ -10,7 +10,6 @@ import 'package:flutter_slidable/flutter_slidable.dart';
 import '../../constants/colors.dart';
 import '../../constants/styles.dart';
 import '../../services/transaction_service.dart';
-import '../../services/account_service.dart'; // ← Account 타입 위해
 import '../../providers/transaction_providers.dart';
 
 /// Providers
@@ -50,8 +49,10 @@ class TransactionPage extends ConsumerWidget {
           elevation: 0,
           title: const SizedBox.shrink(),
           bottom: const PreferredSize(
-            preferredSize: Size.fromHeight(140),
+            // 실제 높이보다 약간 넉넉히
+            preferredSize: Size.fromHeight(180),
             child: Column(
+              mainAxisSize: MainAxisSize.min, // ↲ 내용만큼만 차지
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _Header(),

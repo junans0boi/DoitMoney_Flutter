@@ -1,0 +1,2 @@
+/Users/junzzang_m1/Documents/GitHub/DoitMoney_Flutter/android/app/.cxx/Debug/423d3w2n/armeabi-v7a/CMakeFiles/edit_cache.dir
+/Users/junzzang_m1/Documents/GitHub/DoitMoney_Flutter/android/app/.cxx/Debug/423d3w2n/armeabi-v7a/CMakeFiles/rebuild_cache.dir

@@ -1,6 +1,5 @@
 // lib/services/account_service.dart
-
-import '../api/api.dart';
+import '../api/dio_client.dart';
 
 enum AccountType { BANK, CARD, CASH, ETC }
 
