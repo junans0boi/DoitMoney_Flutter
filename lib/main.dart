@@ -24,7 +24,7 @@ Future<void> main() async {
   // 백그라운드 FCM 핸들러 등록
   FirebaseMessaging.onBackgroundMessage(_fcmBackground);
 
-  runApp(const ProviderScope(child: PlanaryApp()));
+  runApp(const ProviderScope(child: DoitMoneyApp()));
 }
 
 @pragma('vm:entry-point')
@@ -33,8 +33,8 @@ Future<void> _fcmBackground(RemoteMessage msg) async {
   await handlePush(msg); // ✅ 공개 함수 호출
 }
 
-class PlanaryApp extends ConsumerWidget {
-  const PlanaryApp({super.key});
+class DoitMoneyApp extends ConsumerWidget {
+  const DoitMoneyApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -42,7 +42,7 @@ class PlanaryApp extends ConsumerWidget {
     return MaterialApp.router(
       routerConfig: router,
       debugShowCheckedModeBanner: false,
-      title: 'Planary',
+      title: 'DoitMoney',
       theme: ThemeData(
         fontFamily: 'GmarketSans',
         textTheme: textTheme,

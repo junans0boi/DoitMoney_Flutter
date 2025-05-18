@@ -8,6 +8,7 @@ class ParsedTxn {
   final int amount; // – 지출, + 수입
   final String description; // 거래처
   final String accountName; // 계좌/카드명
+  final String accountNumber;
 
   const ParsedTxn({
     required this.type,
@@ -15,6 +16,7 @@ class ParsedTxn {
     required this.amount,
     required this.description,
     required this.accountName,
+    required this.accountNumber,
   });
 
   Transaction toModel() => Transaction(
@@ -25,6 +27,7 @@ class ParsedTxn {
     amount: amount,
     description: description,
     accountName: accountName,
+    accountNumber: accountNumber,
   );
 }
 
@@ -70,6 +73,7 @@ final _rules = <RegExp, ParsedTxn Function(RegExpMatch)>{
             (m.namedGroup('sign') == '-' ? -1 : 1),
         description: m.namedGroup('desc')!.trim(),
         accountName: '카카오뱅크',
+        accountNumber: '',
       ),
 
   // ── KB국민카드 ────────────────────────────────────
@@ -80,6 +84,7 @@ final _rules = <RegExp, ParsedTxn Function(RegExpMatch)>{
         amount: -int.parse(m.namedGroup('amt')!.replaceAll(',', '')),
         description: m.namedGroup('desc')!.trim(),
         accountName: 'KB국민카드',
+        accountNumber: '',
       ),
 
   // 1) “출금 … 체크카드출금” ------------------------------------------
@@ -90,6 +95,7 @@ final _rules = <RegExp, ParsedTxn Function(RegExpMatch)>{
         amount: -int.parse(m.namedGroup('amt')!.replaceAll(',', '')),
         description: m.namedGroup('desc')!.trim(),
         accountName: '체크카드',
+        accountNumber: '',
       ),
 
   // 2) 우리WON뱅킹  [입금] --------------------------------------------
@@ -100,6 +106,7 @@ final _rules = <RegExp, ParsedTxn Function(RegExpMatch)>{
         amount: int.parse(m.namedGroup('amt')!.replaceAll(',', '')),
         description: m.namedGroup('desc')!.trim(),
         accountName: '우리은행',
+        accountNumber: '',
       ),
 
   // 3) 우리WON뱅킹  [출금] --------------------------------------------
@@ -110,6 +117,7 @@ final _rules = <RegExp, ParsedTxn Function(RegExpMatch)>{
         amount: -int.parse(m.namedGroup('amt')!.replaceAll(',', '')),
         description: m.namedGroup('desc')!.trim(),
         accountName: '우리은행',
+        accountNumber: '',
       ),
 };
 

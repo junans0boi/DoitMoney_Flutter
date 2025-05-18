@@ -3,6 +3,8 @@ import '../api/dio_client.dart';
 
 enum AccountType { BANK, CARD, CASH, ETC }
 
+enum BankDetail { DEMAND, SAVINGS, OVERDRAFT, PENSION }
+
 class Account {
   final int id;
   final AccountType accountType;
@@ -10,10 +12,12 @@ class Account {
   final String accountNumber;
   final double balance;
   final String logoPath;
+  final BankDetail detailType;
 
   const Account({
     required this.id,
     required this.accountType,
+    required this.detailType,
     required this.institutionName,
     required this.accountNumber,
     required this.balance,
@@ -24,18 +28,27 @@ class Account {
     final name = j['institutionName'] as String;
     return Account(
       id: j['id'] as int,
+
+      // 1) accountType
       accountType: AccountType.values.firstWhere(
-        (e) => e.name == j['accountType'],
+        (e) => e.name == j['accountType'] as String,
       ),
+
+      // 2) detailType
+      detailType: BankDetail.values.firstWhere(
+        (e) => e.name == j['detailType'] as String,
+        orElse: () => BankDetail.DEMAND, // 없으면 DEMAND 로 기본 지정
+      ),
+
       institutionName: name,
       accountNumber: j['accountNumber'] as String? ?? '',
       balance: (j['balance'] as num).toDouble(),
       logoPath: AccountService.logos[name] ?? 'assets/images/default_bank.png',
     );
   }
-
   Map<String, dynamic> toJson() => {
     'accountType': accountType.name,
+    'detailType': detailType.name,
     'institutionName': institutionName,
     'accountNumber': accountNumber,
     'balance': balance.round(),

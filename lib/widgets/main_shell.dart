@@ -1,5 +1,6 @@
 // lib/widgets/main_shell.dart
 import 'package:doitmoney_flutter/providers/user_provider.dart';
+import 'package:doitmoney_flutter/screens/transaction/transaction_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -73,7 +74,14 @@ class _MainShellState extends ConsumerState<MainShell> {
       type: BottomNavigationBarType.fixed,
       selectedItemColor: kPrimaryColor,
       unselectedItemColor: Colors.grey,
-      onTap: (i) => context.go(_tabs[i]),
+      onTap: (i) {
+        // ── 1) GoRouter 이동
+        context.go(_tabs[i]);
+        // ── 2) '가계부' 탭이면 Provider invalidate
+        if (_tabs[i] == '/ledger') {
+          ref.invalidate(allTransactionsProvider);
+        }
+      },
       items: const [
         BottomNavigationBarItem(
           icon: FaIcon(FontAwesomeIcons.house),

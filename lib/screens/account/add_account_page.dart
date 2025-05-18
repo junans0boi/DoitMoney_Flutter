@@ -1,24 +1,28 @@
 // lib/screens/account/add_account_page.dart
-// ────────────────────────────────────────────────────────────────────────────
 import 'package:flutter/material.dart';
-import '../../constants/colors.dart';
-import '../../services/account_service.dart';
+import 'package:doitmoney_flutter/services/account_service.dart'
+    show Account, AccountService, AccountType, BankDetail;
+import '../../constants/colors.dart'; // colors 만 상대경로로
 
-/* ─────────────────── 상세 분류 (은행 전용) ─────────────────── */
-enum BankDetail { demand, savings, overdraft, pension }
-
+/// BankDetail enum 은 DEMAND, SAVINGS, OVERDRAFT, PENSION 으로 정의되어 있으니
+/// extension 도 그에 맞춰 대문자로 씁니다.
 extension BankDetailDisplay on BankDetail {
-  String get label => switch (this) {
-    BankDetail.demand => '입출금',
-    BankDetail.savings => '예적금',
-    BankDetail.overdraft => '마이너스통장',
-    BankDetail.pension => '연금',
-  };
+  String get label {
+    switch (this) {
+      case BankDetail.DEMAND:
+        return '입출금';
+      case BankDetail.SAVINGS:
+        return '예적금';
+      case BankDetail.OVERDRAFT:
+        return '마이너스통장';
+      case BankDetail.PENSION:
+        return '연금';
+    }
+  }
 }
 
-/* ─────────────────── 화면 ─────────────────── */
 class AddAccountPage extends StatefulWidget {
-  final Account? editing; // ← 추가
+  final Account? editing;
   const AddAccountPage({super.key, this.editing});
 
   @override
@@ -49,6 +53,7 @@ class _AddAccountPageState extends State<AddAccountPage> {
     if (_isEdit) {
       final e = widget.editing!;
       _type = e.accountType;
+      _detail = e.detailType;
       _institution = e.institutionName;
       _no.text = e.accountNumber;
       _amt.text = e.balance.round().toString();
@@ -59,6 +64,7 @@ class _AddAccountPageState extends State<AddAccountPage> {
     final acct = Account(
       id: widget.editing?.id ?? 0,
       accountType: _type!,
+      detailType: _detail!,
       institutionName:
           _institution ?? (_type == AccountType.CASH ? '현금' : '기타'),
       accountNumber: _no.text,
@@ -76,7 +82,6 @@ class _AddAccountPageState extends State<AddAccountPage> {
     Navigator.pop(context, true);
   }
 
-  /* ─────────────────── build ─────────────────── */
   @override
   Widget build(BuildContext context) {
     return Scaffold(

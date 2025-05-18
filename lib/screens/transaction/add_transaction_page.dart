@@ -1,5 +1,6 @@
 // lib/screens/transaction/add_transaction_page.dart
 
+import 'package:doitmoney_flutter/services/account_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -25,7 +26,7 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
 
   late TransactionType _transactionType;
   late DateTime _selectedDateTime;
-  String? _selectedAccount;
+  Account? _selectedAccountObj;
   String _category = '기타';
 
   final _descriptionController = TextEditingController();
@@ -50,7 +51,9 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
             });
           });
     _selectedDateTime = tx?.transactionDate ?? DateTime.now();
-    _selectedAccount = tx?.accountName;
+    // 편집 모드라도 여기서는 나중에 drop-down 목록에서 골라주도록,
+    // 초기에는 null 로 두겠습니다.
+    _selectedAccountObj = null;
     _category = tx?.category ?? '기타';
     _descriptionController.text = tx?.description ?? '';
     _amountController.text = tx != null ? tx.amount.abs().toString() : '';
@@ -99,7 +102,7 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
   bool get _canSave {
     return _descriptionController.text.isNotEmpty &&
         _amountController.text.isNotEmpty &&
-        _selectedAccount != null;
+        _selectedAccountObj != null;
   }
 
   Future<void> _save() async {
@@ -116,7 +119,8 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
       category: _category,
       amount: signedAmt,
       description: _descriptionController.text.trim(),
-      accountName: _selectedAccount!,
+      accountName: _selectedAccountObj!.institutionName,
+      accountNumber: _selectedAccountObj!.accountNumber,
     );
 
     if (widget.existing == null) {
@@ -185,26 +189,46 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
               const Divider(),
               // 계좌
               accountsAsync.when(
-                data:
-                    (list) => DropdownButtonFormField<String>(
-                      decoration: const InputDecoration(labelText: '계좌 선택'),
-                      items:
-                          list
-                              .map(
-                                (a) => DropdownMenuItem(
-                                  value: a.institutionName,
-                                  child: Text(a.institutionName),
-                                ),
-                              )
-                              .toList(),
-                      value: _selectedAccount,
-                      onChanged: (v) => setState(() => _selectedAccount = v),
-                      validator: (v) => v == null ? '선택하세요' : null,
-                    ),
+                data: (list) {
+                  // 기존 거래 편집 시 초기값 매칭
+                  final initial =
+                      _selectedAccountObj ??
+                      (widget.existing != null
+                          ? list.firstWhere(
+                            (a) =>
+                                a.institutionName ==
+                                widget.existing!.accountName,
+                            orElse: () => list.first,
+                          )
+                          : null);
+
+                  return DropdownButtonFormField<Account>(
+                    decoration: const InputDecoration(labelText: '계좌 선택'),
+                    items:
+                        list.map((a) {
+                          final last4 =
+                              a.accountNumber.length >= 4
+                                  ? a.accountNumber.substring(
+                                    a.accountNumber.length - 4,
+                                  )
+                                  : a.accountNumber;
+                          return DropdownMenuItem(
+                            value: a,
+                            child: Text('${a.institutionName} ($last4)'),
+                          );
+                        }).toList(),
+                    value: initial,
+                    onChanged: (v) => setState(() => _selectedAccountObj = v),
+                    validator: (v) => v == null ? '선택하세요' : null,
+                  );
+                }, // ← data 핸들러 끝나면 반드시 “},” 를 찍어야 함
                 loading: () => const Center(child: CircularProgressIndicator()),
                 error: (e, _) => Text('오류: $e'),
               ),
+
               const SizedBox(height: 16),
+              // 카테고리, 저장 버튼 등 나머지…
+
               // 카테고리
               DropdownButtonFormField<String>(
                 decoration: const InputDecoration(labelText: '카테고리'),

@@ -13,6 +13,7 @@ class Transaction {
   final int amount;
   final String description;
   final String accountName;
+  final String accountNumber;
 
   Transaction({
     required this.id,
@@ -22,6 +23,7 @@ class Transaction {
     required this.amount,
     required this.description,
     required this.accountName,
+    required this.accountNumber,
   });
 
   /// 서버로부터 받은 JSON → Dart 객체
@@ -37,6 +39,7 @@ class Transaction {
       amount: (j['amount'] as num).toInt(),
       description: j['description'] as String? ?? '',
       accountName: j['accountName'] as String? ?? '',
+      accountNumber: j['accountNumber'] as String? ?? '',
     );
   }
 
@@ -48,6 +51,7 @@ class Transaction {
     'amount': amount,
     'description': description,
     'accountName': accountName,
+    'accountNumber': accountNumber,
   };
 }
 
