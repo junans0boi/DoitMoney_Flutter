@@ -1,27 +1,26 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../services/auth_service.dart'; // <-- UserProfile 를 여기서 가져옵니다.
 
-/// 유저 모델 예시
-class User {
-  final String name;
-  final String email;
-
-  User({required this.name, required this.email});
-}
-
-/// 사용자 상태 관리용 Notifier
-class UserNotifier extends StateNotifier<User?> {
-  UserNotifier() : super(null);
-
-  void login(User user) {
-    state = user;
+class UserNotifier extends StateNotifier<UserProfile?> {
+  final Ref ref;
+  UserNotifier(this.ref) : super(null) {
+    loadProfile();
   }
 
-  void logout() {
+  Future<void> loadProfile() async {
+    try {
+      final profile = await AuthService.fetchProfile();
+      state = profile;
+    } catch (_) {
+      state = null;
+    }
+  }
+
+  void clear() {
     state = null;
   }
 }
 
-/// 전역에서 사용할 provider
-final userProvider = StateNotifierProvider<UserNotifier, User?>(
-  (ref) => UserNotifier(),
+final userProvider = StateNotifierProvider<UserNotifier, UserProfile?>(
+  (ref) => UserNotifier(ref),
 );

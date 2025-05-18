@@ -1,8 +1,32 @@
-import 'package:dio/dio.dart' show DioException; // ← DioException 용
+import 'package:dio/dio.dart' show DioException;
 import '../api/dio_client.dart';
 
+class UserProfile {
+  final int userId;
+  final String email;
+  final String username;
+  final String phone;
+  final String profileImageUrl;
+
+  UserProfile({
+    required this.userId,
+    required this.email,
+    required this.username,
+    required this.phone,
+    required this.profileImageUrl,
+  });
+
+  factory UserProfile.fromJson(Map<String, dynamic> j) => UserProfile(
+    userId: j['userId'] as int,
+    email: j['email'] as String,
+    username: j['username'] as String,
+    phone: j['phone'] as String,
+    profileImageUrl: j['profileImageUrl'] as String? ?? '',
+  );
+}
+
 class AuthService {
-  /// 로그인 : 200 OK 만 확인하면 쿠키가 세션을 관리합니다
+  /// 로그인
   static Future<bool> login(String email, String password) async {
     try {
       final res = await dio.post(
@@ -15,9 +39,16 @@ class AuthService {
     }
   }
 
+  /// 내 프로필 조회
+  static Future<UserProfile> fetchProfile() async {
+    final res = await dio.get('/user/me');
+    if (res.statusCode != 200) throw Exception('프로필 조회 실패');
+    return UserProfile.fromJson(res.data as Map<String, dynamic>);
+  }
+
   /// 로그아웃
   static Future<void> logout() async {
-    await dio.post('/auth/logout'); // SecurityConfig 의 logoutUrl
+    await dio.post('/auth/logout');
   }
 
   // 이메일 중복 체크

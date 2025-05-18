@@ -1,19 +1,22 @@
 // lib/widgets/main_shell.dart
+import 'package:doitmoney_flutter/providers/user_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import 'package:go_router/go_router.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 import '../constants/colors.dart';
 
-class MainShell extends StatefulWidget {
+class MainShell extends ConsumerStatefulWidget {
   const MainShell({super.key, required this.child});
   final Widget child;
 
   @override
-  State<MainShell> createState() => _MainShellState();
+  ConsumerState<MainShell> createState() => _MainShellState();
 }
 
-class _MainShellState extends State<MainShell> {
+class _MainShellState extends ConsumerState<MainShell> {
   /* ── 탭 <-> 경로 매핑 ─────────────────────────────── */
   static const _tabs = ['/', '/ledger', '/account'];
 
@@ -26,6 +29,7 @@ class _MainShellState extends State<MainShell> {
 
   @override
   Widget build(BuildContext context) {
+    final me = ref.watch(userProvider);
     final routeInfo = GoRouter.of(context).routeInformationProvider.value;
     final idx = _locationToIndex(routeInfo.location ?? '/');
 
@@ -38,14 +42,16 @@ class _MainShellState extends State<MainShell> {
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: Row(
           children: [
-            const CircleAvatar(
+            // watch the userProvider
+            // now we already have `me` via ref.watch above:
+            CircleAvatar(
               radius: 18,
-              backgroundImage: AssetImage('assets/images/doitmoney_logo.png'),
+              backgroundImage: NetworkImage(me?.profileImageUrl ?? ''),
             ),
             const SizedBox(width: 8),
-            const Text(
-              '이준환님', // 실제 프로필 Provider로 교체 가능
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+            Text(
+              me?.username ?? '...로딩중',
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
             ),
             const Spacer(),
             IconButton(

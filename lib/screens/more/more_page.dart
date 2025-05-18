@@ -1,5 +1,6 @@
 // lib/screens/more/more_page.dart
 import 'package:doitmoney_flutter/providers/auth_provider.dart';
+import 'package:doitmoney_flutter/providers/user_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../constants/colors.dart';
@@ -10,6 +11,7 @@ class MorePage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final me = ref.watch(userProvider);
     return Scaffold(
       appBar: AppBar(
         title: const Text('더보기', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -39,17 +41,15 @@ class MorePage extends ConsumerWidget {
               ),
               child: Row(
                 children: [
-                  const CircleAvatar(
+                  CircleAvatar(
                     radius: 28,
-                    backgroundImage: AssetImage(
-                      'assets/images/doitmoney_logo.png',
-                    ),
+                    backgroundImage: NetworkImage(me?.profileImageUrl ?? ''),
                   ),
                   const SizedBox(width: 12),
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      '이준환님',
-                      style: TextStyle(
+                      me?.username ?? '로딩중...',
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
                       ),
