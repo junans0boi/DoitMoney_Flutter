@@ -27,6 +27,9 @@ Future<void> main() async {
   // ① Dio 초기화
   await initDio();
 
+  // SMS 리스너 초기화
+  await SmsService().init();
+
   // ② Alarm Manager 초기화
   await AndroidAlarmManager.initialize();
 

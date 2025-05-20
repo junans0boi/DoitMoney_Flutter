@@ -119,6 +119,26 @@ final _rules = <RegExp, ParsedTxn Function(RegExpMatch)>{
         accountName: '우리은행',
         accountNumber: '',
       ),
+
+  // ── 우리카드 체크승인 ─────────────────────────────────────────────
+  RegExp(
+        r'^안내\n' // 1) "안내" 고정
+        r'우리카드 이용안내 우리카드\(\d+\)체크승인\n' // 2) "우리카드(숫자)체크승인"
+        r'.+\n' // 3) 고객명 (마스킹)
+        r'(?<amt>[0-9,]+)원\n' // 4) 금액 (콤마 포함)
+        r'(?<when>\d{2}/\d{2}\d{2}:\d{2})\n' // 5) MM/DDHH:MM
+        r'(?<desc>.+)$', // 6) 가맹점명
+        multiLine: true,
+      ):
+      (m) => ParsedTxn(
+        type: TransactionType.expense,
+        // 날짜+시간을 정확히 파싱하려면 _parseYMDHMS 유틸 사용
+        date: _parseYMDHMS(m.namedGroup('when')!),
+        amount: -int.parse(m.namedGroup('amt')!.replaceAll(',', '')),
+        description: m.namedGroup('desc')!.trim(),
+        accountName: '우리카드',
+        accountNumber: '',
+      ),
 };
 
 /* ───── 4) 엔트리 함수 ───── */
