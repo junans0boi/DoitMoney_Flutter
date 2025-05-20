@@ -1,19 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import '../../constants/colors.dart';
 import '../../constants/typography.dart';
 import '../../services/account_service.dart';
 import 'add_account_page.dart';
 import 'account_detail_page.dart';
+import '../../widgets/news/news_banner.dart';
 
-class AccountPage extends StatefulWidget {
+class AccountPage extends ConsumerStatefulWidget {
   const AccountPage({super.key});
 
   @override
-  State<AccountPage> createState() => _AccountPageState();
+  ConsumerState<AccountPage> createState() => _AccountPageState();
 }
 
-class _AccountPageState extends State<AccountPage> {
+class _AccountPageState extends ConsumerState<AccountPage> {
   late Future<List<Account>> _futureAccounts;
   bool _banksCollapsed = false, _cardsCollapsed = false;
 
@@ -194,15 +196,17 @@ class _AccountPageState extends State<AccountPage> {
     ),
   );
 
-  Widget _buildAdBanner() => ClipRRect(
-    borderRadius: BorderRadius.circular(8),
-    child: Image.network(
-      'https://via.placeholder.com/640x120.png?text=AD',
-      height: 120,
-      width: double.infinity,
-      fit: BoxFit.cover,
-    ),
-  );
+  Widget _buildAdBanner() {
+    // 이제 단 한 줄로
+    return const Padding(
+      padding: EdgeInsets.symmetric(vertical: 8),
+      child: NewsBanner(
+        height: 120,
+        borderRadius: BorderRadius.all(Radius.circular(8)),
+        fontSize: 12,
+      ),
+    );
+  }
 
   Widget _buildSectionHeader({
     required String title,

@@ -28,6 +28,7 @@ import '../widgets/main_shell.dart';
 import '../screens/more/more_page.dart';
 import '../screens/more/sms_alert_page.dart';
 import '../screens/transaction/transaction_detail_page.dart'; // ← import
+import '../screens/transaction/ocr_transaction_page.dart';
 
 /// ──────────────────────────────────────────────────────────────
 final routerProvider = Provider<GoRouter>((ref) {
@@ -112,6 +113,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/fixed-expense',
         builder: (_, __) => const FixedExpenseListPage(),
+      ),
+      GoRoute(
+        path: '/transaction/ocr',
+        builder: (_, __) => const OcrTransactionPage(),
       ),
     ],
   );

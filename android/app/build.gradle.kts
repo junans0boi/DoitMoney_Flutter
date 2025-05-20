@@ -45,4 +45,8 @@ flutter {
 dependencies {
     // desugaring 라이브러리 추가
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.3")
+
+    // ML Kit on-device OCR (static bundle) – 최신 안정 버전으로 변경
+    implementation("com.google.mlkit:text-recognition:16.0.1")
+    implementation("com.google.mlkit:text-recognition-korean:16.0.1")
 }

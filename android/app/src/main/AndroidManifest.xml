@@ -7,7 +7,7 @@
     <uses-permission android:name="android.permission.SEND_SMS" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.INTERNET" />
-
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <application
         android:name="${applicationName}"
         android:label="DoitMoney"
@@ -23,15 +23,21 @@
             android:windowSoftInputMode="adjustResize">
             <meta-data
                 android:name="io.flutter.embedding.android.NormalTheme"
-                android:resource="@style/NormalTheme"/>
+                android:resource="@style/NormalTheme" />
             <intent-filter>
-                <action android:name="android.intent.action.MAIN"/>
-                <category android:name="android.intent.category.LAUNCHER"/>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
 
+
+        <!-- ML Kit OCR 모듈 로드 -->
+        <meta-data
+            android:name="com.google.mlkit.vision.DEPENDENCIES"
+            android:value="ocr" />
+
         <!-- Flutter 플러그인 등록용 -->
-        <meta-data android:name="flutterEmbedding" android:value="2"/>
+        <meta-data android:name="flutterEmbedding" android:value="2" />
 
         <!-- telephony SMS receiver -->
         <receiver
@@ -39,7 +45,7 @@
             android:exported="true"
             android:permission="android.permission.BROADCAST_SMS">
             <intent-filter android:priority="999">
-                <action android:name="android.provider.Telephony.SMS_RECEIVED"/>
+                <action android:name="android.provider.Telephony.SMS_RECEIVED" />
             </intent-filter>
         </receiver>
 
@@ -48,7 +54,7 @@
             android:name="com.google.firebase.messaging.FirebaseMessagingService"
             android:exported="false">
             <intent-filter>
-                <action android:name="com.google.firebase.MESSAGING_EVENT"/>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
             </intent-filter>
         </service>
 
@@ -57,8 +63,8 @@
     <!-- Android 11+ PROCESS_TEXT query 필요 시 -->
     <queries>
         <intent>
-            <action android:name="android.intent.action.PROCESS_TEXT"/>
-            <data android:mimeType="text/plain"/>
+            <action android:name="android.intent.action.PROCESS_TEXT" />
+            <data android:mimeType="text/plain" />
         </intent>
     </queries>
 </manifest>

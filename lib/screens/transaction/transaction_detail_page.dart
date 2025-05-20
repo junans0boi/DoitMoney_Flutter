@@ -35,7 +35,7 @@ class TransactionDetailPage extends ConsumerWidget {
                 context.pop(true);
               }
             },
-            child: const Text('수정', style: TextStyle(color: Colors.white)),
+            child: const Text('수정', style: TextStyle(color: Colors.black)),
           ),
         ],
       ),

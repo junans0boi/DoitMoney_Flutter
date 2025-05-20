@@ -27,7 +27,8 @@ class FixedExpenseListPage extends ConsumerWidget {
                   '매월 총 지출: ${total.toString()}원',
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
-                    fontSize: 16,
+                    fontSize: 23,
+                    color: Colors.blueAccent,
                   ),
                 ),
               ),
@@ -54,7 +55,7 @@ class FixedExpenseListPage extends ConsumerWidget {
                               backgroundColor: Theme.of(
                                 context,
                               ).primaryColor.withOpacity(0.1),
-                              child: Text('${fe.dayOfMonth}일'),
+                              child: Text('${fe.dayOfMonth}'),
                             ),
                             const SizedBox(width: 16),
                             Expanded(
@@ -80,8 +81,9 @@ class FixedExpenseListPage extends ConsumerWidget {
                                         (_) => AddFixedExpensePage(editing: fe),
                                   ),
                                 );
-                                if (ok == true)
+                                if (ok == true) {
                                   ref.refresh(fixedExpensesProvider);
+                                }
                               },
                             ),
                             IconButton(
