@@ -204,7 +204,7 @@ class _Header extends ConsumerWidget {
 }
 
 class _MonthSelector extends ConsumerWidget {
-  const _MonthSelector({super.key});
+  const _MonthSelector();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -230,7 +230,7 @@ class _MonthSelector extends ConsumerWidget {
 }
 
 class _FilterSheet extends ConsumerWidget {
-  const _FilterSheet({super.key});
+  const _FilterSheet();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -265,10 +265,11 @@ class _FilterSheet extends ConsumerWidget {
                                   value: selected.contains(a.institutionName),
                                   onChanged:
                                       (v) => setState(() {
-                                        if (v!)
+                                        if (v!) {
                                           selected.add(a.institutionName);
-                                        else
+                                        } else {
                                           selected.remove(a.institutionName);
+                                        }
                                       }),
                                 );
                               }).toList(),
@@ -296,13 +297,13 @@ class _FilterSheet extends ConsumerWidget {
                 ),
           ),
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text('오류: \$e')),
+      error: (e, _) => const Center(child: Text('오류: \$e')),
     );
   }
 }
 
 class DailyTab extends ConsumerWidget {
-  const DailyTab({Key? key}) : super(key: key);
+  const DailyTab({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -315,7 +316,7 @@ class DailyTab extends ConsumerWidget {
         return Slidable(
           key: ValueKey(t.id),
           endActionPane: ActionPane(
-            motion: DrawerMotion(),
+            motion: const DrawerMotion(),
             children: [
               SlidableAction(
                 onPressed: (slidableContext) async {
@@ -480,7 +481,7 @@ class WeeklyTab extends ConsumerWidget {
                       }).toList(),
                   titlesData: const FlTitlesData(show: false),
                   borderData: FlBorderData(show: false),
-                  gridData: FlGridData(show: false),
+                  gridData: const FlGridData(show: false),
                 ),
               ),
             ),
@@ -500,7 +501,7 @@ class WeeklyTab extends ConsumerWidget {
                 style: kBodyText,
               ),
             );
-          }).toList(),
+          }),
         ],
       ],
     );
@@ -518,63 +519,66 @@ class _CalendarTabState extends ConsumerState<CalendarTab> {
   DateTime _focused = DateTime.now();
   DateTime? _selected;
 
+  DateTime _normalize(DateTime d) => DateTime(d.year, d.month, d.day);
+
   @override
   Widget build(BuildContext context) {
-    // 1) 필터링된 거래 가져오기
     final txs = ref.watch(filteredTransactionsProvider);
 
-    // 2) 날짜별 이벤트 맵 생성
-    final events = <DateTime, List<Transaction>>{};
-    for (var t in txs) {
-      final d = DateTime(
-        t.transactionDate.year,
-        t.transactionDate.month,
-        t.transactionDate.day,
-      );
-      events.putIfAbsent(d, () => []).add(t);
+    // 날짜별로 거래 묶기
+    final Map<DateTime, List<Transaction>> events = {};
+    for (final t in txs) {
+      final day = _normalize(t.transactionDate);
+      events.putIfAbsent(day, () => []).add(t);
     }
 
-    // 3) 현재 선택된 날짜의 거래 리스트
-    final selectedEvents =
-        _selected != null ? events[_selected!]! : <Transaction>[];
+    final selectedDay = _selected != null ? _normalize(_selected!) : null;
+    // 이벤트가 없으면 빈 리스트를 반환하도록 수정
+    final todayList =
+        selectedDay != null
+            ? (events[selectedDay] ?? <Transaction>[])
+            : <Transaction>[];
+
+    int sumIncome(List<Transaction> list) =>
+        list.where((e) => e.amount > 0).fold(0, (a, e) => a + e.amount);
+    int sumExpense(List<Transaction> list) =>
+        list.where((e) => e.amount < 0).fold(0, (a, e) => a + e.amount).abs();
 
     return Column(
       children: [
-        // 달력
+        // ─── 달력 ────────────────────────────────────────────
         TableCalendar<Transaction>(
           firstDay: DateTime(2000),
           lastDay: DateTime(2100),
           focusedDay: _focused,
-          selectedDayPredicate: (d) => isSameDay(_selected, d),
-          eventLoader: (d) => events[d] ?? [],
+          selectedDayPredicate: (d) => _normalize(d) == selectedDay,
+          eventLoader: (d) => events[_normalize(d)] ?? [],
           headerVisible: false,
           calendarStyle: CalendarStyle(
+            // 오늘 표시
             todayDecoration: BoxDecoration(
-              color: kPrimaryColor.withAlpha(50),
+              color: kPrimaryColor.withOpacity(0.2),
               shape: BoxShape.circle,
             ),
             selectedDecoration: BoxDecoration(
-              color: kPrimaryColor.withAlpha(100),
+              color: kPrimaryColor.withOpacity(0.4),
               shape: BoxShape.circle,
             ),
           ),
           calendarBuilders: CalendarBuilders(
-            defaultBuilder: (context, day, focusedDay) {
-              final dayEvents =
-                  events[DateTime(day.year, day.month, day.day)] ?? [];
-              final inSum = dayEvents
-                  .where((e) => e.amount > 0)
-                  .fold(0, (a, e) => a + e.amount);
-              final outSum = dayEvents
-                  .where((e) => e.amount < 0)
-                  .fold(0, (a, e) => a + e.amount.abs());
+            defaultBuilder: (context, day, _) {
+              final dayKey = _normalize(day);
+              final list = events[dayKey] ?? [];
+              final inSum = sumIncome(list);
+              final outSum = sumExpense(list);
+
               return Container(
                 margin: const EdgeInsets.all(4),
-                padding: const EdgeInsets.all(6),
+                padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 2),
                 decoration:
-                    isSameDay(_selected, day)
+                    _normalize(day) == selectedDay
                         ? BoxDecoration(
-                          color: kPrimaryColor.withAlpha(50),
+                          color: kPrimaryColor.withOpacity(0.2),
                           shape: BoxShape.circle,
                         )
                         : null,
@@ -587,71 +591,108 @@ class _CalendarTabState extends ConsumerState<CalendarTab> {
                     if (inSum > 0)
                       Text(
                         '+${NumberFormat('#,###').format(inSum)}',
-                        style: kBodyText.copyWith(fontSize: 12),
+                        style: kBodyText.copyWith(
+                          fontSize: 10,
+                          color: kSuccess,
+                        ),
                       ),
                     if (outSum > 0)
                       Text(
                         '-${NumberFormat('#,###').format(outSum)}',
-                        style: kBodyText.copyWith(fontSize: 12, color: kError),
+                        style: kBodyText.copyWith(fontSize: 10, color: kError),
                       ),
                   ],
                 ),
               );
             },
           ),
-          onDaySelected: (selectedDay, focusedDay) {
+          onDaySelected: (sel, foc) {
             setState(() {
-              _selected = selectedDay;
-              _focused = focusedDay;
+              _selected = sel;
+              _focused = foc;
             });
           },
         ),
 
-        // 선택된 날짜 거래 목록 헤더
+        // ─── 선택된 날짜 헤더 ───────────────────────────────────
         if (_selected != null) ...[
           const SizedBox(height: 8),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Text(
-              '${_selected!.month}월 ${_selected!.day}일 거래 목록',
-              style: kBodyText.copyWith(fontWeight: FontWeight.w600),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: Row(
+              children: [
+                Text(
+                  '${_selected!.month}월 ${_selected!.day}일 '
+                  '(${DateFormat.E('ko').format(_selected!)})',
+                  style: kBodyText.copyWith(fontWeight: FontWeight.w600),
+                ),
+                const Spacer(),
+                Text(
+                  '+${NumberFormat('#,###').format(sumIncome(todayList))}원',
+                  style: kBodyText.copyWith(color: kSuccess, fontSize: 14),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  '-${NumberFormat('#,###').format(sumExpense(todayList))}원',
+                  style: kBodyText.copyWith(color: kError, fontSize: 14),
+                ),
+              ],
             ),
           ),
-          const Divider(),
+          const Divider(height: 1),
 
-          // 4) 거래 리스트
+          // ─── 거래 목록 ─────────────────────────────────────────
           Expanded(
             child: ListView.builder(
-              itemCount: selectedEvents.length,
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              itemCount: todayList.length,
               itemBuilder: (ctx, i) {
-                final t = selectedEvents[i];
-                return ListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-                  title: Text(
-                    t.description,
-                    style: kBodyText.copyWith(fontWeight: FontWeight.w600),
+                final t = todayList[i];
+                return Card(
+                  margin: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 6,
                   ),
-                  subtitle: Text(
-                    t.accountName,
-                    style: kBodyText.copyWith(color: Colors.black45),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  trailing: Text(
-                    '${NumberFormat('#,###').format(t.amount)}원',
-                    style: kBodyText.copyWith(
-                      color: t.amount < 0 ? kError : kSuccess,
+                  elevation: 1,
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
                     ),
+                    // 거래 시간 · 수단
+                    title: Text(
+                      t.description,
+                      style: kBodyText.copyWith(fontWeight: FontWeight.w600),
+                    ),
+                    subtitle: Text(
+                      '${DateFormat.Hm().format(t.transactionDate)} · ${t.accountName}',
+                      style: kBodyText.copyWith(color: Colors.black54),
+                    ),
+                    trailing: Text(
+                      '${NumberFormat('#,###').format(t.amount)}원',
+                      style: kBodyText.copyWith(
+                        color: t.amount < 0 ? kError : kSuccess,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    onTap: () async {
+                      final res = await context.push<bool>(
+                        '/transaction/edit',
+                        extra: t,
+                      );
+                      if (res == true) ref.invalidate(allTransactionsProvider);
+                    },
                   ),
-                  onTap: () async {
-                    final result = await context.push<bool>(
-                      '/transaction/edit',
-                      extra: t,
-                    );
-                    if (result == true) ref.invalidate(allTransactionsProvider);
-                  },
                 );
               },
             ),
           ),
+        ] else ...[
+          const SizedBox(height: 24),
+          const Text('날짜를 선택해 보세요.', style: kBodyText),
         ],
       ],
     );

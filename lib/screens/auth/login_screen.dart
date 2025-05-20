@@ -120,9 +120,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     );
   }
 
-  Widget _snsRow() => Row(
+  Widget _snsRow() => const Row(
     mainAxisAlignment: MainAxisAlignment.center,
-    children: const [
+    children: [
       SnsButton(
         background: Color(0xFF03C75A),
         child: Text(

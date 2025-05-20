@@ -1,6 +1,5 @@
 import 'package:permission_handler/permission_handler.dart';
 import 'package:another_telephony/telephony.dart';
-import '../api/dio_client.dart';
 import '../utils/txn_parser.dart';
 import 'transaction_service.dart';
 

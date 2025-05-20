@@ -1,4 +1,5 @@
 // lib/providers/router_provider.dart
+import 'package:doitmoney_flutter/screens/fixed_expense/fixed_expense_list_page.dart';
 import 'package:doitmoney_flutter/services/transaction_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -107,6 +108,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           final tx = state.extra as Transaction;
           return TransactionDetailPage(transaction: tx);
         },
+      ),
+      GoRoute(
+        path: '/fixed-expense',
+        builder: (_, __) => const FixedExpenseListPage(),
       ),
     ],
   );

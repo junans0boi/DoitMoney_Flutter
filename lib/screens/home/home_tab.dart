@@ -1,12 +1,17 @@
-import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package\:flutter/material.dart';
+import 'package\:flutter\_riverpod/flutter\_riverpod.dart';
+import 'package\:font\_awesome\_flutter/font\_awesome\_flutter.dart';
+import 'package\:go\_router/go\_router.dart';
 import '../../constants/colors.dart';
+import '../../providers/fixed\_expense\_provider.dart';
 
-class HomeTab extends StatelessWidget {
+class HomeTab extends ConsumerWidget {
   const HomeTab({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final fixedAsync = ref.watch(fixedExpensesProvider);
+
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(vertical: 16),
       child: Column(
@@ -18,7 +23,6 @@ class HomeTab extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                // ↓ withAlpha 로 교체해 deprecation 제거
                 color: kPrimaryColor.withAlpha((0.1 * 255).round()),
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -42,6 +46,107 @@ class HomeTab extends StatelessWidget {
           ),
           const SizedBox(height: 24),
 
+          // 정기지출 --------------------------------------------------------
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: fixedAsync.when(
+              data: (list) {
+                if (list.isEmpty) {
+                  return InkWell(
+                    onTap: () => context.push('/fixed-expense'),
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Color(0x14000000),
+                            blurRadius: 8,
+                            offset: Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: const Center(
+                        child: Text(
+                          '등록된 정기지출이 없습니다.',
+                          style: TextStyle(fontSize: 16),
+                        ),
+                      ),
+                    ),
+                  );
+                }
+
+                final total = list.fold<int>(0, (sum, fe) => sum + fe.amount);
+                return InkWell(
+                  onTap: () => context.push('/fixed-expense'),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x14000000),
+                          blurRadius: 8,
+                          offset: Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              '정기지출',
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(
+                              '$total원',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        // 각 항목 리스트
+                        ...list.map(
+                          (e) => Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 4),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text('${e.dayOfMonth}일 • ${e.category}'),
+                                Text('${e.amount}원'),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error:
+                  (err, _) => Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Text(
+                      '오류: $err',
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                  ),
+            ),
+          ),
+
+          const SizedBox(height: 16),
           // 정기지출 --------------------------------------------------------
           const _SectionCard(
             title: '정기지출',

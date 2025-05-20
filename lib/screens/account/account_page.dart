@@ -7,7 +7,7 @@ import 'add_account_page.dart';
 import 'account_detail_page.dart';
 
 class AccountPage extends StatefulWidget {
-  const AccountPage({Key? key}) : super(key: key);
+  const AccountPage({super.key});
 
   @override
   State<AccountPage> createState() => _AccountPageState();
@@ -298,9 +298,9 @@ class _AccountPageState extends State<AccountPage> {
         color: const Color(0xFFF2F0FF),
         borderRadius: BorderRadius.circular(12),
       ),
-      child: Row(
+      child: const Row(
         mainAxisAlignment: MainAxisAlignment.center,
-        children: const [
+        children: [
           Text(
             '자산 추가하기',
             style: TextStyle(

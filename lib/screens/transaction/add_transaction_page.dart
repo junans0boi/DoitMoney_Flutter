@@ -1,19 +1,15 @@
 // lib/screens/transaction/add_transaction_page.dart
-
 import 'package:doitmoney_flutter/services/account_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import '../../services/transaction_service.dart';
+import '../../services/transaction_service.dart' as tx_svc;
+import '../../services/fixed_expense_service.dart' as fx_svc;
 import '../../providers/transaction_providers.dart';
 
-/// 기존 TransactionService.transactionType 과 동일한 enum 사용
-// enum TransactionType { income, expense, transfer } // 지우고
-
 class AddTransactionPage extends ConsumerStatefulWidget {
-  /// 기존 거래가 넘어오면 '수정' 모드, 아니면 '추가' 모드
-  final Transaction? existing;
-  const AddTransactionPage({Key? key, this.existing}) : super(key: key);
+  final tx_svc.Transaction? existing;
+  const AddTransactionPage({super.key, this.existing});
 
   @override
   ConsumerState<AddTransactionPage> createState() => _AddTransactionPageState();
@@ -24,10 +20,11 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
   final _formKey = GlobalKey<FormState>();
   late TabController _tabController;
 
-  late TransactionType _transactionType;
+  late tx_svc.TransactionType _transactionType;
   late DateTime _selectedDateTime;
   Account? _selectedAccountObj;
   String _category = '기타';
+  bool _isFixed = false;
 
   final _descriptionController = TextEditingController();
   final _amountController = TextEditingController();
@@ -38,31 +35,28 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
   void initState() {
     super.initState();
     final tx = widget.existing;
-    _transactionType = tx?.transactionType ?? TransactionType.expense;
+    _transactionType = tx?.transactionType ?? tx_svc.TransactionType.expense;
     _tabController =
         TabController(length: 2, vsync: this)
-          ..index = (_transactionType == TransactionType.income ? 0 : 1)
+          ..index = (_transactionType == tx_svc.TransactionType.income ? 0 : 1)
           ..addListener(() {
             setState(() {
               _transactionType =
-                  (_tabController.index == 0)
-                      ? TransactionType.income
-                      : TransactionType.expense;
+                  _tabController.index == 0
+                      ? tx_svc.TransactionType.income
+                      : tx_svc.TransactionType.expense;
             });
           });
+
     _selectedDateTime = tx?.transactionDate ?? DateTime.now();
-    // 편집 모드라도 여기서는 나중에 drop-down 목록에서 골라주도록,
-    // 초기에는 null 로 두겠습니다.
-    _selectedAccountObj = null;
     _category = tx?.category ?? '기타';
     _descriptionController.text = tx?.description ?? '';
     _amountController.text = tx != null ? tx.amount.abs().toString() : '';
-    _memoController.text = ''; // 만약 tx.memo 필드 있으면 그걸로
+    _memoController.text = '';
 
-    // 수정 모드라면 탭 위치도 맞춰주기
     if (tx != null) {
       _tabController.index =
-          tx.transactionType == TransactionType.income ? 0 : 1;
+          tx.transactionType == tx_svc.TransactionType.income ? 0 : 1;
     }
   }
 
@@ -99,20 +93,19 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
     });
   }
 
-  bool get _canSave {
-    return _descriptionController.text.isNotEmpty &&
-        _amountController.text.isNotEmpty &&
-        _selectedAccountObj != null;
-  }
+  bool get _canSave =>
+      _descriptionController.text.isNotEmpty &&
+      _amountController.text.isNotEmpty &&
+      _selectedAccountObj != null;
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
 
     final parsed = int.parse(_amountController.text.replaceAll(',', ''));
     final signedAmt =
-        _transactionType == TransactionType.expense ? -parsed : parsed;
+        _transactionType == tx_svc.TransactionType.expense ? -parsed : parsed;
 
-    final newTx = Transaction(
+    final newTx = tx_svc.Transaction(
       id: widget.existing?.id ?? 0,
       transactionDate: _selectedDateTime,
       transactionType: _transactionType,
@@ -124,9 +117,27 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
     );
 
     if (widget.existing == null) {
-      await TransactionService.addTransaction(newTx);
+      await tx_svc.TransactionService.addTransaction(newTx);
     } else {
-      await TransactionService.updateTransaction(newTx.id, newTx);
+      await tx_svc.TransactionService.updateTransaction(newTx.id, newTx);
+    }
+
+    if (_isFixed && _transactionType == tx_svc.TransactionType.expense) {
+      final fe = fx_svc.FixedExpense(
+        id: 0,
+        amount: parsed,
+        category: _category,
+        content: _descriptionController.text.trim(),
+        dayOfMonth: _selectedDateTime.day,
+        transactionType: fx_svc.TransactionType.expense,
+        fromAccountId: _selectedAccountObj!.id,
+      );
+      try {
+        await fx_svc.FixedExpenseService.addFixedExpense(fe);
+      } catch (e) {
+        // parsing or server error—log but don’t block the pop
+        debugPrint('fixed-expense registration failed: $e');
+      }
     }
 
     if (!mounted) return;
@@ -152,13 +163,14 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
           key: _formKey,
           child: ListView(
             children: [
-              // 설명
+              // 거래명
               TextFormField(
                 controller: _descriptionController,
                 decoration: const InputDecoration(labelText: '거래명'),
                 validator: (v) => (v == null || v.isEmpty) ? '필수 입력' : null,
               ),
               const SizedBox(height: 16),
+
               // 금액
               TextFormField(
                 controller: _amountController,
@@ -169,12 +181,14 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
                 keyboardType: TextInputType.number,
                 validator: (v) {
                   if (v == null || v.isEmpty) return '필수 입력';
-                  if (int.tryParse(v.replaceAll(',', '')) == null)
+                  if (int.tryParse(v.replaceAll(',', '')) == null) {
                     return '숫자만 입력';
+                  }
                   return null;
                 },
               ),
               const SizedBox(height: 16),
+
               // 일시
               ListTile(
                 title: const Text('거래 일시'),
@@ -187,20 +201,20 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
                 onTap: _pickDateTime,
               ),
               const Divider(),
+
               // 계좌
               accountsAsync.when(
                 data: (list) {
-                  // 기존 거래 편집 시 초기값 매칭
-                  final initial =
-                      _selectedAccountObj ??
-                      (widget.existing != null
-                          ? list.firstWhere(
-                            (a) =>
-                                a.institutionName ==
-                                widget.existing!.accountName,
-                            orElse: () => list.first,
-                          )
-                          : null);
+                  // 편집 모드 시, 처음 빌드될 때 기존 거래의 계좌를 찾아 선택
+                  if (_selectedAccountObj == null && widget.existing != null) {
+                    final ex = widget.existing!;
+                    _selectedAccountObj = list.firstWhere(
+                      (a) =>
+                          a.institutionName == ex.accountName &&
+                          a.accountNumber == ex.accountNumber,
+                      orElse: () => list.first,
+                    );
+                  }
 
                   return DropdownButtonFormField<Account>(
                     decoration: const InputDecoration(labelText: '계좌 선택'),
@@ -217,17 +231,15 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
                             child: Text('${a.institutionName} ($last4)'),
                           );
                         }).toList(),
-                    value: initial,
+                    value: _selectedAccountObj,
                     onChanged: (v) => setState(() => _selectedAccountObj = v),
                     validator: (v) => v == null ? '선택하세요' : null,
                   );
-                }, // ← data 핸들러 끝나면 반드시 “},” 를 찍어야 함
+                },
                 loading: () => const Center(child: CircularProgressIndicator()),
                 error: (e, _) => Text('오류: $e'),
               ),
-
               const SizedBox(height: 16),
-              // 카테고리, 저장 버튼 등 나머지…
 
               // 카테고리
               DropdownButtonFormField<String>(
@@ -239,7 +251,23 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
                 value: _category,
                 onChanged: (v) => setState(() => _category = v!),
               ),
+              const SizedBox(height: 16),
+
+              // 메모
+              TextFormField(
+                controller: _memoController,
+                decoration: const InputDecoration(labelText: '메모'),
+              ),
+              const SizedBox(height: 16),
+
+              // 매월 지출 등록
+              SwitchListTile(
+                title: const Text('매월 지출 등록'),
+                value: _isFixed,
+                onChanged: (v) => setState(() => _isFixed = v),
+              ),
               const SizedBox(height: 32),
+
               // 저장
               SizedBox(
                 width: double.infinity,

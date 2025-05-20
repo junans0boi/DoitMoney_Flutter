@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart' show DioException;
 import '../api/dio_client.dart';
+import 'secure_storage_service.dart';
 
 class UserProfile {
   final int userId;
@@ -27,16 +28,21 @@ class UserProfile {
 
 class AuthService {
   /// 로그인
+  static final _secure = SecureStorageService();
+
   static Future<bool> login(String email, String password) async {
-    try {
-      final res = await dio.post(
-        '/auth/login',
-        data: {'email': email, 'password': password},
-      );
-      return res.statusCode == 200;
-    } on DioException {
-      return false;
+    final res = await dio.post(
+      '/auth/login',
+      data: {'email': email, 'password': password},
+    );
+    if (res.statusCode != 200) return false;
+
+    // only write a token if the body is a JSON map containing accessToken
+    if (res.data is Map<String, dynamic> && res.data['accessToken'] is String) {
+      await _secure.write('access_token', res.data['accessToken']);
     }
+
+    return true;
   }
 
   /// 내 프로필 조회
@@ -49,6 +55,13 @@ class AuthService {
   /// 로그아웃
   static Future<void> logout() async {
     await dio.post('/auth/logout');
+    // 로그아웃 땐 secure storage 비우기
+    await _secure.deleteAll();
+  }
+
+  /// 저장된 토큰 불러오기
+  static Future<String?> get accessToken async {
+    return await _secure.read('access_token');
   }
 
   // 이메일 중복 체크

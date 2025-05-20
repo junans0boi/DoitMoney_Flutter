@@ -22,7 +22,7 @@ class TransactionDetailPage extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         leading: const BackButton(),
-        title: Text('거래 상세'),
+        title: const Text('거래 상세'),
         actions: [
           TextButton(
             onPressed: () async {
