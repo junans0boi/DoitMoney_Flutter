@@ -4,73 +4,72 @@ version: 1.0.0+1
 
 environment:
   sdk: ">=3.7.2 <4.0.0"
+
 dependency_overrides:
   # 모바일에서 쓰기 안전한 last-stable 버전
-  web_socket_channel: 2.4.0 # ← 이미 내려갔지만 한 번 더 명시
+  web_socket_channel: 2.4.0
 
-# ─────────────────────── 의존성 ───────────────────────
 dependencies:
   flutter:
     sdk: flutter
 
-  # 네트워킹 · 상태
+  # ───────── 네트워킹 · 상태 ─────────
   dio: ^5.3.2
-  dio_cookie_manager: ^3.1.0 # 그대로
+  dio_cookie_manager: ^3.1.0
   cookie_jar: ^4.0.8
   path_provider: ^2.1.2
-  flutter_secure_storage: ^8.0.0
-  android_alarm_manager_plus: ^4.0.7
-  flutter_local_notifications: ^17.0.0
+  flutter_secure_storage: ^10.0.0-beta.4 # (업데이트)
+  flutter_local_notifications: ^19.2.1
+  timezone: ^0.10.1
   flutter_riverpod: ^2.6.1
-  go_router: ^10.1.2
+  go_router: ^15.1.2
 
-  # 날짜/숫자, 캘린더
-  intl: ^0.18.1
+  # ───────── 날짜/숫자, 캘린더 ─────────
+  intl: ^0.20.2 # (업데이트)
   table_calendar: ^3.0.9
 
-  # UI 위젯
+  # ───────── UI 위젯 ─────────
   font_awesome_flutter: ^10.7.0
   flutter_svg: ^2.0.7
-  carousel_slider: ^4.2.1
-  flutter_slidable: ^3.0.1
-  dotted_border: ^2.0.0
+  carousel_slider: ^5.0.0 # (업데이트)
+  flutter_slidable: ^4.0.0 # (업데이트)
+  dotted_border: ^3.0.1 # (업데이트)
   cached_network_image: ^3.2.3
 
-  # JSON
+  # ───────── JSON ─────────
   json_annotation: ^4.8.1
 
-  # OCR · 이미지 전처리
-  google_mlkit_text_recognition: ^0.11.0
+  # ───────── 이미지/파일 처리 ─────────
   image: ^4.1.3
+  path: ^1.9.0
 
-  path: ^1.9.0 # basename 등
-
-  # 파일/이미지 선택
-  image_picker: ^1.0.7 # 모바일
+  # ───────── 파일/이미지 선택 ─────────
+  image_picker: ^1.0.7
   file_picker: ^10.1.9
-  month_picker_dialog: ^2.12.0
-  fl_chart: ^0.64.0
+  flutter_pdf_text: ^0.9.0
+  csv: ^6.0.0
+  excel: ^4.0.6
+  month_picker_dialog: ^6.2.1 # (업데이트)
+  fl_chart: ^1.0.0 # (업데이트)
 
-  # SMS 수신
-  another_telephony: ^0.4.1 # ← pub.dev에 36일 전 릴리스, Dart 3 호환
-  permission_handler: ^11.3.0 # POST_NOTIFICATIONS, RECEIVE_SMS 등 런타임 권한
+  # ───────── SMS 수신 ─────────
+  another_telephony: ^0.4.1
+  permission_handler: ^12.0.0+1
 
-  # FCM + 로컬 알림
+  # ───────── FCM + 로컬 알림 ─────────
   firebase_core: ^3.1.0
   firebase_messaging: ^15.0.0
 
   cupertino_icons: ^1.0.2
   sqflite: ^2.4.2
 
-# ─────────────────────── 개발용 ───────────────────────
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^3.0.1
+  flutter_lints: ^5.0.0 # (업데이트)
   build_runner: ^2.4.5
   json_serializable: ^6.7.1
 
-# ─────────────────────── Flutter 설정 ─────────────────
 flutter:
   uses-material-design: true
 

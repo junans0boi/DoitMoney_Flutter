@@ -116,7 +116,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/transaction/ocr',
-        builder: (_, __) => const OcrTransactionPage(),
+        builder: (_, __) => const ImportTransactionsPage(),
       ),
     ],
   );

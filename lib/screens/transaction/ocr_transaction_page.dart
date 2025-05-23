@@ -1,236 +1,384 @@
-import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
-import 'package:go_router/go_router.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter_pdf_text/flutter_pdf_text.dart';
+import 'package:excel/excel.dart';
+import 'package:intl/intl.dart';
+import '../../services/transaction_service.dart'
+    show Transaction, TransactionService, TransactionType;
+import '../../services/account_service.dart' show Account, AccountService;
 
-/// OCR로 읽은 거래 항목 모델
-class OcrTransaction {
-  final String date;
-  final String time;
-  final String description;
-  final int amount;
-  final int balance;
-
-  OcrTransaction({
-    required this.date,
-    required this.time,
-    required this.description,
-    required this.amount,
-    required this.balance,
-  });
-}
-
-class OcrTransactionPage extends StatefulWidget {
-  const OcrTransactionPage({Key? key}) : super(key: key);
+class ImportTransactionsPage extends StatefulWidget {
+  const ImportTransactionsPage({Key? key}) : super(key: key);
 
   @override
-  State<OcrTransactionPage> createState() => _OcrTransactionPageState();
+  _ImportTransactionsPageState createState() => _ImportTransactionsPageState();
 }
 
-class _OcrTransactionPageState extends State<OcrTransactionPage> {
-  File? _image;
-  String _recognizedText = '';
-  List<OcrTransaction> _transactions = [];
-  final _picker = ImagePicker();
+class _ImportTransactionsPageState extends State<ImportTransactionsPage> {
+  final _pwController = TextEditingController();
+  bool _loading = false;
+  String? _fileName;
+  String _raw = '';
+  List<Transaction> _txs = [];
 
-  /// 이미지 선택 및 OCR 수행
-  Future<void> _pickImage() async {
+  late Future<List<Account>> _futureAccounts;
+  Account? _selectedAccount;
+
+  @override
+  void initState() {
+    super.initState();
+    _futureAccounts = AccountService.fetchAccounts();
+  }
+
+  Future<void> _pickAndParse() async {
+    final result = await FilePicker.platform.pickFiles(
+      allowedExtensions: ['pdf', 'csv', 'xlsx'],
+      type: FileType.custom,
+      withData: true,
+    );
+    if (result == null) return;
+
+    setState(() {
+      _loading = true;
+      _fileName = result.files.single.name;
+      _raw = '';
+      _txs.clear();
+    });
+
     try {
-      final picked = await _picker.pickImage(source: ImageSource.gallery);
-      if (picked == null) return;
-      setState(() => _image = File(picked.path));
+      final bytes = result.files.single.bytes!;
+      final path = result.files.single.path!;
+      late String rawText;
 
-      final inputImage = InputImage.fromFilePath(picked.path);
-      final recognizer = TextRecognizer(script: TextRecognitionScript.korean);
-      final result = await recognizer.processImage(inputImage);
-      await recognizer.close();
+      if (path.toLowerCase().endsWith('.pdf')) {
+        rawText = await _loadPdfText(path);
+      } else if (path.toLowerCase().endsWith('.csv')) {
+        rawText = utf8.decode(bytes);
+      } else {
+        rawText = _readXlsx(bytes);
+      }
 
-      // 블록 단위로 텍스트 합치기
-      final raw = result.blocks.map((b) => b.text).join('\n');
-      final parsed = _parseOcrText(raw);
-
+      final parsed = _parsePdfTransactions(rawText);
       setState(() {
-        _recognizedText = raw;
-        _transactions = parsed;
+        _raw = rawText;
+        _txs = parsed;
       });
-    } catch (e, st) {
+    } catch (e) {
+      setState(() {
+        _raw = 'ERROR: $e';
+      });
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  /// PDFDoc.fromPath 호출부를 감싸서
+  /// - 암호 필요시 반복 요청
+  Future<String> _loadPdfText(String path) async {
+    String? pwd;
+    while (true) {
+      try {
+        final doc =
+            (pwd == null)
+                ? await PDFDoc.fromPath(path)
+                : await PDFDoc.fromPath(path, password: pwd);
+        return doc.text;
+      } catch (e) {
+        final msg = e.toString().toLowerCase();
+        if (msg.contains('password') || msg.contains('encrypted')) {
+          pwd = await _askPwd();
+          if (pwd == null) {
+            throw 'PDF 비밀번호 입력이 취소되었습니다.';
+          }
+        } else {
+          rethrow;
+        }
+      }
+    }
+  }
+
+  Future<String?> _askPwd() {
+    _pwController.clear();
+    return showDialog<String>(
+      context: context,
+      builder:
+          (c) => AlertDialog(
+            title: const Text('PDF 비밀번호'),
+            content: TextField(
+              controller: _pwController,
+              decoration: const InputDecoration(hintText: '비밀번호를 입력하세요'),
+              obscureText: true,
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(c, null),
+                child: const Text('취소'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(c, _pwController.text),
+                child: const Text('확인'),
+              ),
+            ],
+          ),
+    );
+  }
+
+  Future<void> _upload() async {
+    if (_txs.isEmpty || _selectedAccount == null) return;
+    setState(() => _loading = true);
+    try {
+      final accName = _selectedAccount!.institutionName;
+      final accNo = _selectedAccount!.accountNumber;
+      final toUpload =
+          _txs.map((t) {
+            return Transaction(
+              id: 0,
+              transactionDate: t.transactionDate,
+              transactionType: t.transactionType,
+              category: t.category,
+              amount: t.amount,
+              description: t.description,
+              accountName: accName,
+              accountNumber: accNo,
+            );
+          }).toList();
+
+      for (final tx in toUpload) {
+        await TransactionService.addTransaction(tx);
+      }
+
+      if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('OCR 실패: \$e')));
-      debugPrint('Ocr error: \$e\n\$st');
+      ).showSnackBar(SnackBar(content: Text('${toUpload.length}건이 등록되었습니다')));
+      Navigator.pop(context, true);
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('업로드 실패: $e')));
+    } finally {
+      if (mounted) setState(() => _loading = false);
     }
-  }
-
-  /// 숫자 문자열 정제 (콤마 그룹이 3자리 초과 시 자르기)
-  String _cleanNumeric(String s) {
-    final parts = s.split(',');
-    if (parts.length > 1 && parts.last.length > 3) {
-      parts[parts.length - 1] = parts.last.substring(0, 3);
-    }
-    return parts.join(',');
-  }
-
-  /// OCR 텍스트를 행 단위로 파싱하여 거래 항목 생성
-  List<OcrTransaction> _parseOcrText(String text) {
-    final lines =
-        text
-            .split(RegExp(r'\r?\n'))
-            .map((l) => l.trim())
-            .where((l) => l.isNotEmpty)
-            .toList();
-
-    final List<OcrTransaction> result = [];
-
-    // 패턴 정의
-    final dateDescRe = RegExp(r'^(\d{1,2}\.\d{1,2})\s+(.+)\$');
-    final timeRe = RegExp(r'^(\d{1,2}):(\d{2})\$');
-    final amtRe = RegExp(r'^(-?\d{1,3}(?:,\d{3})*)원?\$');
-    final balRe = RegExp(r'^(\d{1,3}(?:,\d{3})*)원?\$');
-
-    String? date;
-    String? desc;
-    String? time;
-    int? amt;
-    int? bal;
-
-    for (final line in lines) {
-      // 1) 날짜+설명 한 줄에 있을 때
-      final md = dateDescRe.firstMatch(line);
-      if (md != null) {
-        date = md.group(1)!;
-        desc = md.group(2)!;
-        time = null;
-        amt = null;
-        bal = null;
-        continue;
-      }
-
-      // 2) 시간 (분이 60 미만인지 검증)
-      if (date != null && time == null) {
-        final mt = timeRe.firstMatch(line);
-        if (mt != null) {
-          final minute = int.tryParse(mt.group(2)!) ?? 0;
-          if (minute < 60) {
-            time = mt.group(0)!;
-          }
-          continue;
-        }
-      }
-
-      // 3) 금액
-      if (date != null && time != null && amt == null) {
-        final ma = amtRe.firstMatch(line);
-        if (ma != null) {
-          final rawNum = _cleanNumeric(ma.group(1)!);
-          amt = int.parse(rawNum.replaceAll(',', ''));
-          continue;
-        }
-      }
-
-      // 4) 잔액
-      if (date != null && time != null && amt != null && bal == null) {
-        final mb = balRe.firstMatch(line);
-        if (mb != null) {
-          final rawNum = _cleanNumeric(mb.group(1)!);
-          bal = int.parse(rawNum.replaceAll(',', ''));
-
-          // 모든 정보가 준비되었으므로 결과에 추가
-          result.add(
-            OcrTransaction(
-              date: date,
-              time: time!,
-              description: desc ?? '',
-              amount: amt,
-              balance: bal,
-            ),
-          );
-
-          // 다음 거래를 위해 초기화
-          date = null;
-          desc = null;
-          time = null;
-          amt = null;
-          bal = null;
-        }
-        continue;
-      }
-    }
-
-    return result;
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('OCR 거래 추가')),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            ElevatedButton.icon(
-              icon: const Icon(Icons.photo),
-              label: const Text('사진 선택'),
-              onPressed: _pickImage,
-            ),
-            const SizedBox(height: 16),
-
-            if (_image != null) ...[
-              Image.file(_image!, height: 200),
-              const SizedBox(height: 16),
-
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      const Text(
-                        '▶ Raw OCR Text',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      Text(_recognizedText),
-                      const SizedBox(height: 24),
-
-                      const Text(
-                        '▶ Parsed Transactions',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 8),
-
-                      // 표 형태로 파싱 결과 출력
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: DataTable(
-                          columns: const [
-                            DataColumn(label: Text('날짜')),
-                            DataColumn(label: Text('시간')),
-                            DataColumn(label: Text('설명')),
-                            DataColumn(label: Text('금액')),
-                            DataColumn(label: Text('잔액')),
-                          ],
-                          rows:
-                              _transactions.map((t) {
-                                return DataRow(
-                                  cells: [
-                                    DataCell(Text(t.date)),
-                                    DataCell(Text(t.time)),
-                                    DataCell(Text(t.description)),
-                                    DataCell(Text('${t.amount}원')),
-                                    DataCell(Text('${t.balance}원')),
-                                  ],
-                                );
-                              }).toList(),
+      appBar: AppBar(title: const Text('거래 내역 가져오기')),
+      body: Stack(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.attach_file),
+                  label: const Text('파일 선택'),
+                  onPressed: _pickAndParse,
+                ),
+                const SizedBox(height: 12),
+                FutureBuilder<List<Account>>(
+                  future: _futureAccounts,
+                  builder: (ctx, snap) {
+                    if (snap.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    final list = snap.data ?? [];
+                    return DropdownButtonFormField<Account>(
+                      decoration: const InputDecoration(labelText: '등록할 계좌 선택'),
+                      items:
+                          list.map((a) {
+                            final last4 =
+                                a.accountNumber.length >= 4
+                                    ? a.accountNumber.substring(
+                                      a.accountNumber.length - 4,
+                                    )
+                                    : a.accountNumber;
+                            return DropdownMenuItem(
+                              value: a,
+                              child: Text('${a.institutionName} (…$last4)'),
+                            );
+                          }).toList(),
+                      value: _selectedAccount,
+                      hint: const Text('계좌를 선택하세요'),
+                      onChanged: (v) => setState(() => _selectedAccount = v),
+                    );
+                  },
+                ),
+                const SizedBox(height: 16),
+                if (_fileName != null) ...[
+                  Text(
+                    "선택된 파일: $_fileName",
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    "은행사: ${_selectedAccount?.institutionName ?? '-'}",
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  Text(
+                    "계좌번호: ${_selectedAccount?.accountNumber ?? '-'}",
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  const Divider(height: 32),
+                ],
+                Expanded(
+                  child: DefaultTabController(
+                    length: 2,
+                    child: Column(
+                      children: [
+                        TabBar(
+                          labelColor: theme.primaryColor,
+                          tabs: const [Tab(text: '원본'), Tab(text: '미리보기')],
                         ),
-                      ),
-                    ],
+                        Expanded(
+                          child: TabBarView(
+                            children: [
+                              SingleChildScrollView(
+                                child: Text(
+                                  _raw,
+                                  style: const TextStyle(
+                                    fontFamily: 'monospace',
+                                  ),
+                                ),
+                              ),
+                              _buildModelTable(),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
-          ],
-        ),
+                const SizedBox(height: 12),
+                FilledButton.icon(
+                  onPressed:
+                      (_txs.isEmpty || _selectedAccount == null)
+                          ? null
+                          : _upload,
+                  icon: const Icon(Icons.cloud_upload),
+                  label: const Text('거래 등록'),
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size.fromHeight(48),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (_loading)
+            Container(
+              color: Colors.black38,
+              child: const Center(child: CircularProgressIndicator()),
+            ),
+        ],
       ),
     );
+  }
+
+  Widget _buildModelTable() {
+    if (_txs.isEmpty) {
+      return const Center(child: Text('파싱된 거래가 없습니다'));
+    }
+    final cols = <DataColumn>[
+      const DataColumn(label: Text('날짜')),
+      const DataColumn(label: Text('유형')),
+      const DataColumn(label: Text('카테고리')),
+      const DataColumn(label: Text('금액')),
+      const DataColumn(label: Text('내용')),
+    ];
+    final rows =
+        _txs.map((t) {
+          final d = t.transactionDate;
+          final dateStr =
+              '${d.month.toString().padLeft(2, '0')}/${d.day.toString().padLeft(2, '0')}';
+          final typeStr =
+              t.transactionType == TransactionType.income
+                  ? '수입'
+                  : t.transactionType == TransactionType.expense
+                  ? '지출'
+                  : '이체';
+          final amt = NumberFormat('#,###').format(t.amount.abs());
+          return DataRow(
+            cells: [
+              DataCell(Text(dateStr)),
+              DataCell(Text(typeStr)),
+              DataCell(Text(t.category)),
+              DataCell(Text(amt)),
+              DataCell(Text(t.description)),
+            ],
+          );
+        }).toList();
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.vertical,
+        child: DataTable(columns: cols, rows: rows),
+      ),
+    );
+  }
+
+  String _readXlsx(List<int> bytes) {
+    final ex = Excel.decodeBytes(bytes);
+    final buf = StringBuffer();
+    for (var sheet in ex.tables.values) {
+      for (var row in sheet.rows) {
+        buf.writeln(row.map((c) => c?.value ?? '').join('\t'));
+      }
+    }
+    return buf.toString();
+  }
+
+  List<Transaction> _parsePdfTransactions(String rawText) {
+    final list = <Transaction>[];
+    final chunks = rawText.split(
+      RegExp(r'(?=^20\d{6}\s+\d{2}:\d{2}:\d{2})', multiLine: true),
+    );
+    final rowRegex = RegExp(
+      r'^(20\d{6})\s+(\d{2}:\d{2}:\d{2})\s+(.+?)\s+([\d,]+)\s+([\d,]+)\s+(.+?)\s+([\d,]+)\s+.+$',
+    );
+    for (var chunk in chunks) {
+      final line = chunk.replaceAll('\n', ' ').trim();
+      final m = rowRegex.firstMatch(line);
+      if (m == null) continue;
+
+      final datePart = m.group(1)!;
+      final timePart = m.group(2)!;
+      final category = m.group(3)!.trim();
+      final outStr = m.group(4)!.replaceAll(',', '');
+      final inStr = m.group(5)!.replaceAll(',', '');
+      final description = m.group(6)!.trim();
+      final amount =
+          (int.parse(outStr) > 0) ? -int.parse(outStr) : int.parse(inStr);
+      final type =
+          int.parse(outStr) > 0
+              ? TransactionType.expense
+              : (int.parse(inStr) > 0
+                  ? TransactionType.income
+                  : TransactionType.transfer);
+
+      final year = int.parse(datePart.substring(0, 4));
+      final month = int.parse(datePart.substring(4, 6));
+      final day = int.parse(datePart.substring(6, 8));
+      final parts = timePart.split(':').map(int.parse).toList();
+      final dt = DateTime(year, month, day, parts[0], parts[1], parts[2]);
+
+      list.add(
+        Transaction(
+          id: 0,
+          transactionDate: dt,
+          transactionType: type,
+          category: category,
+          amount: amount,
+          description: description,
+          accountName: '',
+          accountNumber: '',
+        ),
+      );
+    }
+    return list;
   }
 }

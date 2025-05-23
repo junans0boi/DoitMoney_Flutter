@@ -1,4 +1,3 @@
-import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
 import 'package:doitmoney_flutter/api/dio_client.dart';
 import 'package:doitmoney_flutter/services/push_service.dart';
 import 'package:doitmoney_flutter/services/reminder_service.dart';
@@ -30,11 +29,8 @@ Future<void> main() async {
   // SMS 리스너 초기화
   await SmsService().init();
 
-  // ② Alarm Manager 초기화
-  await AndroidAlarmManager.initialize();
-
-  // ③ Reminder Service 세팅
-  await initReminderService();
+  // // ③ Reminder Service 세팅
+  // await initReminderService();
 
   // 백그라운드 FCM 핸들러 등록
   FirebaseMessaging.onBackgroundMessage(_fcmBackground);
