@@ -1,6 +1,6 @@
 #!/bin/bash
 
-AVD_NAME="Medium_Phone"
+AVD_NAME="Medium_Phone_API_36.0"
 
 echo "🚀 Android Emulator 실행 중 ($AVD_NAME)..."
 nohup ~/Library/Android/sdk/emulator/emulator -avd "$AVD_NAME" > /dev/null 2>&1 &
