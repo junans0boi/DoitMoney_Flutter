@@ -27,7 +27,7 @@ class ImportTransactionsPage extends StatelessWidget {
     } else {
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => XlsxParsingPage(bytes: bytes)),
+        MaterialPageRoute(builder: (_) => XlsxParsingPage(path: path)),
       );
     }
   }
