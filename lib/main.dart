@@ -1,6 +1,5 @@
 import 'package:doitmoney_flutter/api/dio_client.dart';
 import 'package:doitmoney_flutter/services/push_service.dart';
-import 'package:doitmoney_flutter/services/reminder_service.dart';
 import 'package:doitmoney_flutter/services/sms_service.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';

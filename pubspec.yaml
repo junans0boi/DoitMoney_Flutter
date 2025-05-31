@@ -35,7 +35,7 @@ dependencies:
   flutter_slidable: ^4.0.0
   dotted_border: ^3.0.1
   cached_network_image: ^3.2.3
-
+  http_parser: ^4.0.0
   # ─ JSON ─
   json_annotation: ^4.8.1
 
@@ -80,6 +80,7 @@ flutter:
   assets:
   - assets/images/doitmoney_logo.png
   - assets/images/empty_assets.png
+  - assets/images/upload_avatar.gif
   - assets/banks/
   fonts:
   - family: GmarketSans
