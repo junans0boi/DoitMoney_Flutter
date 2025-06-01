@@ -1,5 +1,7 @@
 // lib/features/transaction/services/transaction_service.dart
 
+// ignore_for_file: unintended_html_in_doc_comment
+
 import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:http_parser/http_parser.dart';

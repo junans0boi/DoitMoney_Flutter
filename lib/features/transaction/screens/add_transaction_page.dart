@@ -1,5 +1,7 @@
 // lib/features/transaction/screens/add_transaction_page.dart (리팩터 후)
 
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:doitmoney_flutter/features/transaction/providers/transaction_provider.dart';
 import 'package:doitmoney_flutter/shared/widgets/common_button.dart';
 import 'package:doitmoney_flutter/shared/widgets/common_list_item.dart';

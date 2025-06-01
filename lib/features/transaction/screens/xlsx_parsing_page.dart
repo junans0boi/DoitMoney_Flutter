@@ -1,5 +1,7 @@
 // lib/features/transaction/screens/xlsx_parsing_page.dart (리팩터 후)
 
+// ignore_for_file: unused_import, use_super_parameters, use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart';

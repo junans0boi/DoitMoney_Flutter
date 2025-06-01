@@ -1,4 +1,6 @@
 // lib/shared/widgets/loading_overlay.dart
+// ignore_for_file: use_super_parameters
+
 import 'package:flutter/material.dart';
 
 /// 페이지 전체를 블러 처리하면서 CircularProgressIndicator를 보여주는 오버레이 위젯

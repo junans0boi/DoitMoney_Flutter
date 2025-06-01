@@ -1,5 +1,7 @@
 // lib/shared/widgets/common_dialog.dart
 
+// ignore_for_file: no_leading_underscores_for_local_identifiers
+
 import 'package:flutter/material.dart';
 
 /// 간단한 확인 다이얼로그를 표시하고 결과(boolean)를 반환

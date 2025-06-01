@@ -12,7 +12,7 @@ import '../../features/transaction/providers/transaction_provider.dart';
 /// - child로 실제 탭 내부 위젯을 전달받습니다.
 class AppShell extends ConsumerStatefulWidget {
   final Widget child;
-  const AppShell({Key? key, required this.child}) : super(key: key);
+  const AppShell({super.key, required this.child});
 
   @override
   ConsumerState<AppShell> createState() => _AppShellState();

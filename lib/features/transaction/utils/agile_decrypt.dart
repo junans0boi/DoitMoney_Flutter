@@ -1,4 +1,6 @@
 // lib/utils/agile_decrypt.dart
+// ignore_for_file: deprecated_member_use
+
 import 'dart:typed_data';
 import 'package:archive/archive.dart';
 import 'package:collection/collection.dart';
@@ -33,7 +35,7 @@ class AgileDecryptor {
       final head = _InfoReader(infoFile.content as Uint8List);
 
       // 1) 암호→키 생성
-      Uint8List _utf16le(String s) {
+      Uint8List utf16le(String s) {
         final out = Uint8List(s.length * 2);
         final bd = out.buffer.asByteData();
         for (var i = 0; i < s.length; i++) {
@@ -43,7 +45,7 @@ class AgileDecryptor {
       }
 
       Digest digest = head.hashAlgo == 'SHA1' ? SHA1Digest() : SHA512Digest();
-      Uint8List _hash(Uint8List d) {
+      Uint8List hash(Uint8List d) {
         digest.reset();
         digest.update(d, 0, d.length);
         final out = Uint8List(digest.digestSize);
@@ -52,15 +54,15 @@ class AgileDecryptor {
       }
 
       // salt || UTF16LE(pwd)
-      Uint8List h = _hash(Uint8List.fromList(head.salt + _utf16le(password)));
+      Uint8List h = hash(Uint8List.fromList(head.salt + utf16le(password)));
       for (var i = 0; i < head.spinCount; i++) {
         final ctr = ByteData(4)..setUint32(0, i, Endian.little);
-        h = _hash(Uint8List.fromList(h + ctr.buffer.asUint8List()));
+        h = hash(Uint8List.fromList(h + ctr.buffer.asUint8List()));
       }
       final finalKey = h.sublist(0, head.keyBits ~/ 8);
 
       // AES-CBC 복호화 함수
-      Uint8List _aes(Uint8List key, Uint8List iv, Uint8List inp) {
+      Uint8List aes(Uint8List key, Uint8List iv, Uint8List inp) {
         final cipher = CBCBlockCipher(AESFastEngine())
           ..init(false, ParametersWithIV(KeyParameter(key), iv));
         final out = Uint8List(inp.length);
@@ -71,20 +73,20 @@ class AgileDecryptor {
       }
 
       final iv0 = Uint8List(head.blockSize);
-      final masterKey = _aes(
+      final masterKey = aes(
         finalKey,
         iv0,
         head.encryptedKey,
       ).sublist(0, head.keyBits ~/ 8);
-      final verIn = _aes(masterKey, iv0, head.verifierHashInput);
-      final verHash = _aes(masterKey, iv0, head.verifierHashValue);
-      final calcHash = _hash(verIn).sublist(0, verHash.length);
+      final verIn = aes(masterKey, iv0, head.verifierHashInput);
+      final verHash = aes(masterKey, iv0, head.verifierHashValue);
+      final calcHash = hash(verIn).sublist(0, verHash.length);
       if (!const ListEquality().equals(calcHash, verHash)) {
         return const AgileDecryptResult.fail('비밀번호 불일치');
       }
 
       // 실제 패키지 평문
-      final plainPkg = _aes(masterKey, iv0, pkgFile.content as Uint8List);
+      final plainPkg = aes(masterKey, iv0, pkgFile.content as Uint8List);
 
       // 2) archive 내부에 교체
       final idx = archive.files.indexOf(pkgFile);

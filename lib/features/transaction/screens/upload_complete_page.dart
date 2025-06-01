@@ -1,5 +1,7 @@
 // lib/features/transaction/screens/upload_complete_page.dart (리팩터 후)
 
+// ignore_for_file: unused_import, use_super_parameters
+
 import 'package:doitmoney_flutter/shared/widgets/common_button.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';

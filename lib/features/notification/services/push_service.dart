@@ -24,7 +24,6 @@ Future<void> handlePush(RemoteMessage m) async {
 }
 
 class PushService {
-  final _fcm = FirebaseMessaging.instance;
   final _local = FlutterLocalNotificationsPlugin();
 
   Future<void> init() async {

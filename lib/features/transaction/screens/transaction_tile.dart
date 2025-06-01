@@ -42,7 +42,7 @@ class TransactionTile extends StatelessWidget {
       trailing: Text(
         '${amt}원',
         style: kBodyText.copyWith(
-          color: transaction.amount < 0 ? kError : kSuccess,
+          color: transaction.amount < 0 ? kError : kPrimaryColor,
           fontWeight: FontWeight.w600,
         ),
       ),

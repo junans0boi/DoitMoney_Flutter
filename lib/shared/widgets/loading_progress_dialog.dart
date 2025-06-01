@@ -1,4 +1,6 @@
 // lib/shared/widgets/loading_progress_dialog.dart
+// ignore_for_file: use_super_parameters
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 

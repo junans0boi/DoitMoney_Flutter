@@ -17,8 +17,8 @@ import 'package:table_calendar/table_calendar.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 
-import 'package:doitmoney_flutter/features/transaction/providers/transaction_provider.dart'; // ← 단수로 변경
-import 'package:doitmoney_flutter/shared/widgets/loading_progress_dialog.dart'; // ← shared/widgets 위치로 변경
+import 'package:doitmoney_flutter/features/transaction/providers/transaction_provider.dart';
+import 'package:doitmoney_flutter/shared/widgets/loading_progress_dialog.dart';
 
 class TransactionPage extends ConsumerWidget {
   const TransactionPage({super.key});
@@ -207,17 +207,22 @@ class DailyTab extends ConsumerStatefulWidget {
 }
 
 class _DailyTabState extends ConsumerState<DailyTab> {
+  // 선택된 거래 ID를 저장하는 Set
   final _selectedIds = <int>{};
 
+  // 선택 모드 여부
   bool get _selectMode => _selectedIds.isNotEmpty;
 
+  // 하나의 거래를 선택/해제
   void _toggle(int id) => setState(() {
-    if (_selectedIds.contains(id))
+    if (_selectedIds.contains(id)) {
       _selectedIds.remove(id);
-    else
+    } else {
       _selectedIds.add(id);
+    }
   });
 
+  // 전체 거래를 선택/해제
   void _toggleAll(List<Transaction> list) => setState(() {
     if (_selectedIds.length == list.length) {
       _selectedIds.clear();
@@ -228,6 +233,7 @@ class _DailyTabState extends ConsumerState<DailyTab> {
     }
   });
 
+  // 선택된 거래들 일괄 삭제
   Future<void> _deleteSel() async {
     final ids =
         ref
@@ -235,8 +241,10 @@ class _DailyTabState extends ConsumerState<DailyTab> {
             .where((t) => _selectedIds.contains(t.id))
             .map((t) => t.id)
             .toList();
-    final progress = ValueNotifier<double>(0);
 
+    if (ids.isEmpty) return;
+
+    final progress = ValueNotifier<double>(0);
     LoadingProgressDialog.show(context, title: '거래 삭제 중…', progress: progress);
 
     for (var i = 0; i < ids.length; i++) {
@@ -256,6 +264,7 @@ class _DailyTabState extends ConsumerState<DailyTab> {
   Widget build(BuildContext context) {
     final txs = ref.watch(filteredTransactionsProvider);
 
+    // 선택 모드일 때, Scaffold를 따로 리턴하여 하단에 삭제/전체 선택 버튼을 띄움
     if (_selectMode) {
       return Scaffold(
         floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
@@ -287,11 +296,12 @@ class _DailyTabState extends ConsumerState<DailyTab> {
       );
     }
 
+    // 기본 모드
     return _buildList(txs);
   }
 
   Widget _buildList(List<Transaction> txs) {
-    // 1) 날짜별로 그룹핑 (iterable_utils 사용)
+    // 1) 거래를 날짜별로 그룹핑
     final Map<DateTime, List<Transaction>> grouped = groupBy(
       txs,
       (t) => DateTime(
@@ -300,7 +310,7 @@ class _DailyTabState extends ConsumerState<DailyTab> {
         t.transactionDate.day,
       ),
     );
-    // 2) 날짜 내림차순 정렬
+    // 2) 날짜 키를 내림차순 정렬
     final days = grouped.keys.toList()..sort((a, b) => b.compareTo(a));
 
     return ListView(
@@ -331,8 +341,9 @@ class _DailyTabState extends ConsumerState<DailyTab> {
                             context.push('/transaction/edit', extra: t).then((
                               ok,
                             ) {
-                              if (ok == true)
+                              if (ok == true) {
                                 ref.invalidate(allTransactionsProvider);
+                              }
                             });
                           },
                           backgroundColor: Colors.blue,
@@ -352,16 +363,26 @@ class _DailyTabState extends ConsumerState<DailyTab> {
                         ),
                       ],
                     ),
-                    child: TransactionTile(
-                      transaction: t,
-                      selectMode: _selectMode,
-                      selected: _selectedIds.contains(t.id),
-                      onCheckboxChanged: (_) => _toggle(t.id),
-                      onTap:
-                          _selectMode
-                              ? () => _toggle(t.id)
-                              : () =>
-                                  context.push('/transaction/detail', extra: t),
+                    // ① 롱프레스로 선택모드 진입/토글
+                    // ② 기본적으로 onTap: 선택모드 여부에 따라 체크박스 토글 or 상세 페이지 이동
+                    child: GestureDetector(
+                      onLongPress: () {
+                        // selectMode가 아니면 롱프레스만으로 첫 번째 거래를 선택
+                        _toggle(t.id);
+                      },
+                      child: TransactionTile(
+                        transaction: t,
+                        selectMode: _selectMode,
+                        selected: _selectedIds.contains(t.id),
+                        onCheckboxChanged: (_) => _toggle(t.id),
+                        onTap:
+                            _selectMode
+                                ? () => _toggle(t.id)
+                                : () => context.push(
+                                  '/transaction/detail',
+                                  extra: t,
+                                ),
+                      ),
                     ),
                   ),
                 ),
@@ -407,6 +428,7 @@ class WeeklyTab extends ConsumerWidget {
       );
       weeks.add({'start': start, 'end': end, 'in': inSum, 'out': outSum});
     }
+
     final idx = weeks.isEmpty ? -1 : (weeks.length > 2 ? 2 : weeks.length - 1);
     final diff = idx >= 0 ? weeks[idx]['out'] - weeks[idx]['in'] : 0;
 
@@ -484,7 +506,7 @@ class _CalendarTabState extends ConsumerState<CalendarTab> {
   Widget build(BuildContext context) {
     final txs = ref.watch(filteredTransactionsProvider);
 
-    // 1) 날짜별 거래 맵핑
+    // 1) 날짜별로 거래 맵핑
     final Map<DateTime, List<Transaction>> events = {};
     for (var t in txs) {
       final day = _normalize(t.transactionDate);
@@ -528,14 +550,12 @@ class _CalendarTabState extends ConsumerState<CalendarTab> {
             defaultBuilder: (ctx, day, _) {
               final d = _normalize(day);
               final msgs = events[d] ?? [];
-              final inSum = sumPositiveAmounts<Transaction>(
-                msgs,
-                (t) => t.amount,
-              );
-              final outSum = sumNegativeAbsAmounts<Transaction>(
-                msgs,
-                (t) => t.amount,
-              );
+              final inSum = msgs
+                  .where((e) => e.amount > 0)
+                  .fold(0, (s, e) => s + e.amount);
+              final outSum = msgs
+                  .where((e) => e.amount < 0)
+                  .fold(0, (s, e) => s + e.amount.abs());
 
               return FittedBox(
                 child: Container(
@@ -565,7 +585,7 @@ class _CalendarTabState extends ConsumerState<CalendarTab> {
                           '+${NumberFormat.compact().format(inSum)}',
                           style: const TextStyle(
                             fontSize: 10,
-                            color: Colors.green,
+                            color: kPrimaryColor,
                           ),
                         ),
                       if (outSum > 0)
@@ -605,7 +625,7 @@ class _CalendarTabState extends ConsumerState<CalendarTab> {
                 const Spacer(),
                 Text(
                   '+${formatWithComma(sumIn)}원',
-                  style: const TextStyle(fontSize: 14, color: Colors.green),
+                  style: const TextStyle(fontSize: 14, color: kPrimaryColor),
                 ),
                 const SizedBox(width: 12),
                 Text(
@@ -668,7 +688,7 @@ class _CalendarTabState extends ConsumerState<CalendarTab> {
                         '${formatWithComma(t.amount)}원',
                         style: TextStyle(
                           fontSize: 14,
-                          color: t.amount < 0 ? Colors.red : Colors.green,
+                          color: t.amount < 0 ? Colors.red : kPrimaryColor,
                           fontWeight: FontWeight.w600,
                         ),
                       ),

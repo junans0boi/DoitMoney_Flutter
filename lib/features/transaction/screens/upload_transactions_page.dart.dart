@@ -21,8 +21,10 @@ class ImportTransactionsPage extends StatelessWidget {
 
     // 파일 확장자에 따라 라우트 분기
     if (file.extension?.toLowerCase() == 'pdf') {
+      // ignore: use_build_context_synchronously
       context.push('/pdf-preview', extra: file.path!); // pdf: 경로(String)
     } else {
+      // ignore: use_build_context_synchronously
       context.push('/xlsx-preview', extra: file); // xlsx: PlatformFile
     }
   }
