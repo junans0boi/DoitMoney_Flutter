@@ -1,9 +1,11 @@
-// lib/screens/transaction/upload_complete_page.dart
+// lib/features/transaction/screens/upload_complete_page.dart (리팩터 후)
+
+import 'package:doitmoney_flutter/shared/widgets/common_button.dart';
 import 'package:flutter/material.dart';
-import '../../constants/colors.dart';
-import '../../constants/styles.dart';
-import '../../services/account_service.dart' show Account;
 import 'package:go_router/go_router.dart';
+import '../../../constants/colors.dart';
+import '../../../constants/styles.dart';
+import '../../account/services/account_service.dart' show Account;
 
 class UploadCompletePage extends StatelessWidget {
   final Account account;
@@ -78,22 +80,11 @@ class UploadCompletePage extends StatelessWidget {
             const Spacer(),
             Padding(
               padding: const EdgeInsets.all(16),
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: kPrimaryColor,
-                  minimumSize: const Size.fromHeight(48),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
+              child: CommonElevatedButton(
+                text: '확인',
                 onPressed: () {
-                  // GoRouter로 스택을 /ledger 하나로 교체
                   context.go('/ledger');
                 },
-                child: const Text(
-                  '확인',
-                  style: TextStyle(fontSize: 16, color: Colors.white),
-                ),
               ),
             ),
           ],

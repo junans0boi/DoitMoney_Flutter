@@ -1,8 +1,9 @@
+// lib/shared/widgets/loading_progress_dialog.dart
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
-/// 진행률(0.0~1.0)을 받아서 화면 전체에
-/// 얼굴 아이콘 + 제목 + 퍼센트 + 프로그레스 바를 띄워 줍니다.
+/// 진행률(0.0~1.0)을 받아 화면 전체에 프로그레스 다이얼로그를 보여줍니다.
+/// show 메서드를 통해 간단히 사용 가능.
 class LoadingProgressDialog extends StatelessWidget {
   final String title;
   final ValueListenable<double> progress;
@@ -13,8 +14,7 @@ class LoadingProgressDialog extends StatelessWidget {
     required this.progress,
   }) : super(key: key);
 
-  /// showDialog으로 띄우는 편의 메서드
-  /// 배경은 전체 흰색으로 설정됩니다.
+  /// [context]에 다이얼로그 형태로 띄우고, 배경은 흰색으로 처리합니다.
   static Future<void> show(
     BuildContext context, {
     required String title,

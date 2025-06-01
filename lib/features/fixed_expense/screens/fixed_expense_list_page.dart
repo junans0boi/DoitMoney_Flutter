@@ -1,8 +1,8 @@
 // lib/screens/fixed_expense/fixed_expense_list_page.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../services/fixed_expense_service.dart';
-import '../../providers/fixed_expense_provider.dart';
+import '../services/fixed_expense_service.dart';
+import '../providers/fixed_expense_provider.dart';
 import 'add_fixed_expense_page.dart';
 
 class FixedExpenseListPage extends ConsumerWidget {
@@ -54,6 +54,7 @@ class FixedExpenseListPage extends ConsumerWidget {
                             CircleAvatar(
                               backgroundColor: Theme.of(
                                 context,
+                                // ignore: deprecated_member_use
                               ).primaryColor.withOpacity(0.1),
                               child: Text('${fe.dayOfMonth}'),
                             ),
@@ -82,6 +83,7 @@ class FixedExpenseListPage extends ConsumerWidget {
                                   ),
                                 );
                                 if (ok == true) {
+                                  // ignore: unused_result
                                   ref.refresh(fixedExpensesProvider);
                                 }
                               },
@@ -92,6 +94,7 @@ class FixedExpenseListPage extends ConsumerWidget {
                                 await FixedExpenseService.deleteFixedExpense(
                                   fe.id,
                                 );
+                                // ignore: unused_result
                                 ref.refresh(fixedExpensesProvider);
                               },
                             ),
@@ -113,6 +116,7 @@ class FixedExpenseListPage extends ConsumerWidget {
           final ok = await Navigator.of(context).push<bool>(
             MaterialPageRoute(builder: (_) => const AddFixedExpensePage()),
           );
+          // ignore: unused_result
           if (ok == true) ref.refresh(fixedExpensesProvider);
         },
         child: const Icon(Icons.add),

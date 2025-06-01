@@ -1,38 +1,37 @@
 // lib/providers/router_provider.dart
-import 'package:doitmoney_flutter/screens/fixed_expense/fixed_expense_list_page.dart';
-import 'package:doitmoney_flutter/screens/transaction/pdf_parsing_page.dart';
-import 'package:doitmoney_flutter/screens/transaction/upload_complete_page.dart';
-import 'package:doitmoney_flutter/screens/transaction/xlsx_parsing_page.dart';
-import 'package:doitmoney_flutter/services/account_service.dart';
-import 'package:doitmoney_flutter/services/transaction_service.dart';
+import 'package:doitmoney_flutter/features/fixed_expense/screens/fixed_expense_list_page.dart';
+import 'package:doitmoney_flutter/features/transaction/screens/pdf_parsing_page.dart';
+import 'package:doitmoney_flutter/features/transaction/screens/upload_complete_page.dart';
+import 'package:doitmoney_flutter/features/transaction/screens/xlsx_parsing_page.dart';
+import 'package:doitmoney_flutter/features/account/services/account_service.dart';
+import 'package:doitmoney_flutter/features/transaction/services/transaction_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:file_picker/file_picker.dart';
 
-import 'auth_provider.dart';
-import '../utils/go_router_refresh_stream.dart';
-import '../widgets/main_shell.dart';
+import 'features/auth/providers/auth_provider.dart';
+import 'core/utils/router_refresh_notifier.dart';
+import 'shared/widgets/app_shell.dart';
 
 // ── 인증 관련 화면들 ──
-import '../screens/auth/login_screen.dart';
-import '../screens/auth/signup_screen.dart';
-import '../screens/auth/find_id_screen.dart';
-import '../screens/auth/find_pw_screen.dart';
-import '../screens/auth/combined_reset_pw_page.dart';
-import '../screens/auth/change_password_page.dart';
+import 'features/auth/screens/login_screen.dart';
+import 'features/auth/screens/signup_screen.dart';
+import 'features/auth/screens/find_id_screen.dart';
+import 'features/auth/screens/reset_password_screen.dart';
+import 'features/auth/screens/change_password_page.dart';
 
 // ── 탭 화면 ──
-import '../screens/home/home_tab.dart';
-import '../screens/transaction/transaction_page.dart';
-import '../screens/account/account_page.dart';
+import 'features/home/screens/home_screen.dart';
+import 'features/transaction/screens/transaction_page.dart';
+import 'features/account/screens/account_page.dart';
 
 // ── 기타 독립 화면 ──
-import '../screens/account/add_account_page.dart';
-import '../screens/transaction/add_transaction_page.dart';
-import '../screens/more/more_page.dart';
-import '../screens/more/sms_alert_page.dart';
-import '../screens/transaction/transaction_detail_page.dart';
-import '../screens/transaction/upload_transactions_page.dart.dart';
+import 'features/account/screens/add_account_page.dart';
+import 'features/transaction/screens/add_transaction_page.dart';
+import 'features/more/screens/more_screen.dart';
+import 'features/more/screens/sms_alert_page.dart';
+import 'features/transaction/screens/transaction_detail_page.dart';
+import 'features/transaction/screens/upload_transactions_page.dart.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final loggedIn = ref.watch(authProvider);
@@ -73,11 +72,11 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       // ── 메인 Shell ──
       ShellRoute(
-        builder: (_, __, child) => MainShell(child: child),
+        builder: (_, __, child) => AppShell(child: child),
         routes: [
           GoRoute(
             path: '/',
-            pageBuilder: (_, __) => const NoTransitionPage(child: HomeTab()),
+            pageBuilder: (_, __) => const NoTransitionPage(child: HomeScreen()),
           ),
           GoRoute(
             path: '/ledger',

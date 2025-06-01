@@ -1,12 +1,12 @@
 // lib/screens/auth/change_password_page.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../widgets/auth/auth_scaffold.dart';
-import '../../widgets/auth/auth_input.dart';
-import '../../widgets/auth/auth_button.dart';
-import '../../constants/colors.dart';
-import '../../services/user_service.dart';
-import '../../providers/user_provider.dart';
+import '../widgets/auth_scaffold.dart';
+import '../widgets/auth_input.dart';
+import '../widgets/auth_button.dart';
+import '../../../constants/colors.dart';
+import '../services/user_service.dart';
+import '../providers/user_provider.dart';
 
 /// 로그인(마이페이지) 상태에서 “현재 비밀번호 / 새 비밀번호 / 새 비밀번호 확인” 입력 후 비밀번호 변경
 class ChangePasswordPage extends ConsumerStatefulWidget {

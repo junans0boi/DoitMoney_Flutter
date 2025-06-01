@@ -1,10 +1,10 @@
-// lib/services/user_service.dart
+// lib/features/auth/services/user_service.dart
+
 import 'package:dio/dio.dart';
-import '../api/dio_client.dart';
+import '../../../core/api/dio_client.dart';
 
 /// 로그인된 사용자가 "현재 비밀번호 / 새 비밀번호" 로 비밀번호를 변경할 때 호출되는 서비스
 class UserService {
-  /// "/api/user/me/change-password" 엔드포인트 호출
   static Future<void> changePassword({
     required String oldPassword,
     required String newPassword,

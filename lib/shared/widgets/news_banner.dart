@@ -1,23 +1,22 @@
-// lib/widgets/news_banner.dart
+// lib/shared/widgets/news_banner.dart (리팩터 후, 약간 주석 정리만)
+// ignore_for_file: use_super_parameters
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../providers/news_provider.dart';
-import '../../constants/colors.dart';
+import '../../features/home/providers/news_provider.dart';
 
-/// A reusable banner that shows today’s finance news.
-///
-/// [height], [borderRadius], and [fontSize] allow you to tweak it on each page.
+/// 오늘자 금융 뉴스를 PageView로 보여주는 위젯
 class NewsBanner extends ConsumerWidget {
   final double height;
   final BorderRadius borderRadius;
   final double fontSize;
 
   const NewsBanner({
-    super.key,
+    Key? key,
     this.height = 152,
     this.borderRadius = const BorderRadius.all(Radius.circular(12)),
     this.fontSize = 14,
-  });
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

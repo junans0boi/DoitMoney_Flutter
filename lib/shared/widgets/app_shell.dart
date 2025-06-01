@@ -1,25 +1,24 @@
-// lib/widgets/main_shell.dart
-import 'package:doitmoney_flutter/providers/user_provider.dart';
-import 'package:doitmoney_flutter/screens/transaction/transaction_page.dart';
+// lib/shared/widgets/app_shell.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import 'package:go_router/go_router.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import '../providers/transaction_providers.dart';
 
-import '../constants/colors.dart';
+import '../../constants/colors.dart';
+import '../../features/auth/providers/user_provider.dart';
+import '../../features/transaction/providers/transaction_provider.dart';
 
-class MainShell extends ConsumerStatefulWidget {
-  const MainShell({super.key, required this.child});
+/// 메인 Shell 위젯: AppBar와 BottomNavigationBar를 공통으로 관리합니다.
+/// - child로 실제 탭 내부 위젯을 전달받습니다.
+class AppShell extends ConsumerStatefulWidget {
   final Widget child;
+  const AppShell({Key? key, required this.child}) : super(key: key);
 
   @override
-  ConsumerState<MainShell> createState() => _MainShellState();
+  ConsumerState<AppShell> createState() => _AppShellState();
 }
 
-class _MainShellState extends ConsumerState<MainShell> {
-  /* ── 탭 <-> 경로 매핑 ─────────────────────────────── */
+class _AppShellState extends ConsumerState<AppShell> {
   static const _tabs = ['/', '/ledger', '/account'];
 
   int _locationToIndex(String location) {
@@ -35,50 +34,48 @@ class _MainShellState extends ConsumerState<MainShell> {
     final routeInfo = GoRouter.of(context).routeInformationProvider.value;
     final idx = _locationToIndex(routeInfo.uri.path);
 
-    /* ── 상단 AppBar ───────────────────────────────── */
+    // ── 상단 AppBar ─────────────────────────────────
     final appBar = AppBar(
-      // titleSpacing 0 ⇒ 왼쪽 여백 맞추기
       titleSpacing: 0,
       automaticallyImplyLeading: false,
+      backgroundColor: kBackground,
+      foregroundColor: kPrimary,
+      elevation: 0,
       title: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: Row(
           children: [
-            // watch the userProvider
-            // now we already have `me` via ref.watch above:
             CircleAvatar(
               radius: 18,
               backgroundImage: NetworkImage(me?.profileImageUrl ?? ''),
             ),
             const SizedBox(width: 8),
             Text(
-              me?.username ?? '...로딩중',
+              me?.username ?? '로딩중',
               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
             ),
             const Spacer(),
             IconButton(
               icon: const Icon(Icons.notifications_none),
-              onPressed: () => context.go('/notifications'),
+              onPressed: () => context.push('/notifications'),
             ),
             IconButton(
               icon: const Icon(Icons.menu),
-              onPressed: () => context.push('/more'), // ⇢ 더보기
+              onPressed: () => context.push('/more'),
             ),
           ],
         ),
       ),
     );
 
-    /* ── 하단 탭 Bar ───────────────────────────────── */
+    // ── 하단 탭 Bar ─────────────────────────────────
     final bottomNav = BottomNavigationBar(
       currentIndex: idx,
       type: BottomNavigationBarType.fixed,
       selectedItemColor: kPrimaryColor,
       unselectedItemColor: Colors.grey,
       onTap: (i) {
-        // ── 1) GoRouter 이동
         context.go(_tabs[i]);
-        // ── 2) '가계부' 탭이면 Provider invalidate
         if (_tabs[i] == '/ledger') {
           ref.invalidate(allTransactionsProvider);
         }

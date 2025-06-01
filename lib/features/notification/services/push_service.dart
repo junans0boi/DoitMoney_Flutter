@@ -1,7 +1,7 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import '../utils/txn_parser.dart';
-import 'transaction_service.dart';
+import '../../../core/utils/transaction_message_parser.dart';
+import '../../transaction/services/transaction_service.dart';
 
 /// 👉 전역 함수(공개)로 변경 — 다른 파일에서 쓸 수 있도록
 Future<void> handlePush(RemoteMessage m) async {

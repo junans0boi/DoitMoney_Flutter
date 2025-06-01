@@ -1,19 +1,18 @@
-// lib/screens/auth/find_id_screen.dart
+import 'package:doitmoney_flutter/features/auth/widgets/auth_scaffold.dart';
 import 'package:flutter/material.dart';
-import '../../widgets/auth/auth_scaffold.dart';
-import '../../widgets/auth/auth_input.dart';
-import '../../widgets/auth/auth_button.dart';
-import '../../services/auth_service.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../shared/widgets/common_input.dart';
+import '../../../shared/widgets/common_button.dart';
+import '../services/auth_service.dart';
 
-/// 전화번호로 가입된 이메일(아이디)을 찾는 화면
-class FindIdPage extends StatefulWidget {
+class FindIdPage extends ConsumerStatefulWidget {
   const FindIdPage({super.key});
 
   @override
-  State<FindIdPage> createState() => _FindIdPageState();
+  ConsumerState<FindIdPage> createState() => _FindIdPageState();
 }
 
-class _FindIdPageState extends State<FindIdPage> {
+class _FindIdPageState extends ConsumerState<FindIdPage> {
   final _phoneCtrl = TextEditingController();
   String _result = '';
 
@@ -48,7 +47,7 @@ class _FindIdPageState extends State<FindIdPage> {
       title: '아이디 찾기',
       body: Column(
         children: [
-          AuthInput(
+          CommonInput(
             hint: '전화번호 (01012345678)',
             controller: _phoneCtrl,
             keyboardType: TextInputType.phone,
@@ -57,7 +56,11 @@ class _FindIdPageState extends State<FindIdPage> {
           if (_result.isNotEmpty) Text(_result),
         ],
       ),
-      footer: AuthButton(text: '찾기', enabled: _canSubmit, onPressed: _find),
+      footer: CommonElevatedButton(
+        text: '찾기',
+        enabled: _canSubmit,
+        onPressed: _find,
+      ),
     );
   }
 }

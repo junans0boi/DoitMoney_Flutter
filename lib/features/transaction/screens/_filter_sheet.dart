@@ -1,9 +1,10 @@
+// lib/features/transaction/screens/_filter_sheet.dart (리팩터 후)
+
+import 'package:doitmoney_flutter/features/transaction/providers/transaction_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-
-import '../../constants/colors.dart';
-import '../../providers/transaction_providers.dart';
+import '../../../constants/colors.dart';
 
 class FilterSheet extends ConsumerWidget {
   const FilterSheet({super.key});
@@ -47,19 +48,20 @@ class FilterSheet extends ConsumerWidget {
                       ),
                       const Divider(height: 1),
 
-                      // 계좌 체크박스
+                      // 계좌 체크박스 목록
                       ...list.map(
                         (a) => CheckboxListTile(
                           dense: true,
                           value: tmpAcc.contains(a.institutionName),
                           title: Text(a.institutionName),
                           onChanged:
-                              (v) => setState(
-                                () =>
-                                    v!
-                                        ? tmpAcc.add(a.institutionName)
-                                        : tmpAcc.remove(a.institutionName),
-                              ),
+                              (v) => setState(() {
+                                if (v!) {
+                                  tmpAcc.add(a.institutionName);
+                                } else {
+                                  tmpAcc.remove(a.institutionName);
+                                }
+                              }),
                         ),
                       ),
 
@@ -71,7 +73,7 @@ class FilterSheet extends ConsumerWidget {
                         title: Text(
                           tmpRange == null
                               ? '전체 기간'
-                              : '\${DateFormat.yMd().format(tmpRange!.start)}  –  \${DateFormat.yMd().format(tmpRange!.end)}',
+                              : '${DateFormat.yMd().format(tmpRange!.start)}  –  ${DateFormat.yMd().format(tmpRange!.end)}',
                         ),
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () async {
@@ -116,10 +118,8 @@ class FilterSheet extends ConsumerWidget {
             child: Center(child: CircularProgressIndicator()),
           ),
       error:
-          (e, _) => Padding(
-            padding: const EdgeInsets.all(32),
-            child: Text('오류: \$e'),
-          ),
+          (e, _) =>
+              Padding(padding: const EdgeInsets.all(32), child: Text('오류: $e')),
     );
   }
 }

@@ -1,15 +1,18 @@
-// lib/screens/transaction/xlsx_parsing_page.dart
+// lib/features/transaction/screens/xlsx_parsing_page.dart (리팩터 후)
+
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart';
-import 'package:doitmoney_flutter/services/account_service.dart'
-    show Account, AccountService;
-import 'package:doitmoney_flutter/services/transaction_service.dart'
-    show Transaction, TransactionService, TransactionType;
-import 'package:doitmoney_flutter/widgets/common/loading_progress_dialog.dart';
-import '../../widgets/common/loading_overlay.dart';
-import '../../constants/colors.dart';
 import 'package:go_router/go_router.dart';
+import '../../../shared/widgets/loading_overlay.dart';
+import '../../../shared/widgets/loading_progress_dialog.dart';
+import 'package:doitmoney_flutter/features/transaction/services/transaction_service.dart'
+    show Transaction, TransactionService, TransactionType;
+import '../../../shared/widgets/common_input.dart';
+import '../../../shared/widgets/common_button.dart';
+import '../../../constants/colors.dart';
+import '../../account/services/account_service.dart'
+    show Account, AccountService;
 
 class XlsxParsingPage extends StatefulWidget {
   final PlatformFile file;
@@ -38,27 +41,8 @@ class _XlsxParsingPageState extends State<XlsxParsingPage> {
   }
 
   Future<void> _decryptAndParse() async {
-    final pwd = await _askPwd();
-    if (pwd == null) return;
-    setState(() => _busy = true);
-    try {
-      final rows = await TransactionService.decryptExcel(
-        widget.file.bytes!,
-        widget.file.name,
-        pwd,
-      );
-      setState(() {
-        _raw = rows;
-        _txs = _toTransactions(rows);
-      });
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
-  }
-
-  Future<String?> _askPwd() {
     final ctrl = TextEditingController();
-    return showDialog<String>(
+    final pwd = await showDialog<String>(
       context: context,
       builder:
           (c) => AlertDialog(
@@ -80,6 +64,22 @@ class _XlsxParsingPageState extends State<XlsxParsingPage> {
             ],
           ),
     );
+    if (pwd == null) return;
+
+    setState(() => _busy = true);
+    try {
+      final rows = await TransactionService.decryptExcel(
+        widget.file.bytes!,
+        widget.file.name,
+        pwd,
+      );
+      setState(() {
+        _raw = rows;
+        _txs = _toTransactions(rows);
+      });
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
   }
 
   List<Transaction> _toTransactions(List<List<String>> rows) {
@@ -171,11 +171,10 @@ class _XlsxParsingPageState extends State<XlsxParsingPage> {
                 onChanged: (v) => setState(() => _selectedAccount = v),
               ),
               const SizedBox(height: 12),
-              FilledButton.icon(
-                onPressed: _busy ? null : _decryptAndParse,
-                icon: const Icon(Icons.lock_open),
-                label: const Text('복호화 & 파싱'),
-                style: FilledButton.styleFrom(backgroundColor: kPrimaryColor),
+              CommonElevatedButton(
+                text: '복호화 & 파싱',
+                enabled: !_busy,
+                onPressed: _decryptAndParse,
               ),
               const SizedBox(height: 16),
               Expanded(
@@ -205,14 +204,10 @@ class _XlsxParsingPageState extends State<XlsxParsingPage> {
                   ),
                 ),
               ),
-              FilledButton.icon(
-                onPressed:
-                    (_txs.isEmpty || _selectedAccount == null) ? null : _upload,
-                icon: const Icon(Icons.cloud_upload),
-                label: const Text('등록'),
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size.fromHeight(48),
-                ),
+              CommonElevatedButton(
+                text: '등록',
+                enabled: (_txs.isNotEmpty && _selectedAccount != null),
+                onPressed: _upload,
               ),
             ],
           ),

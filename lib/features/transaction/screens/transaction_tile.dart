@@ -1,8 +1,10 @@
+// ignore_for_file: use_super_parameters, deprecated_member_use, unnecessary_brace_in_string_interps
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../../constants/colors.dart';
-import '../../constants/styles.dart';
-import '../../services/transaction_service.dart';
+import '../../../constants/colors.dart';
+import '../../../constants/styles.dart';
+import '../services/transaction_service.dart';
 
 class TransactionTile extends StatelessWidget {
   final Transaction transaction;

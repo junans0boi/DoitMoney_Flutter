@@ -1,10 +1,12 @@
-// lib/screens/more/more_page.dart
-import 'package:doitmoney_flutter/providers/auth_provider.dart';
-import 'package:doitmoney_flutter/providers/user_provider.dart';
+// lib/features/more/screens/more_page.dart
+
+import 'package:doitmoney_flutter/shared/widgets/common_list_item.dart';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
-import '../../constants/colors.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import '../../../constants/colors.dart';
+import '../../auth/providers/auth_provider.dart';
+import '../../auth/providers/user_provider.dart';
 
 class MorePage extends ConsumerWidget {
   const MorePage({super.key});
@@ -23,9 +25,11 @@ class MorePage extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
         children: [
-          /* ── 프로필 카드 ───────────────────────────── */
+          // 프로필 카드
           InkWell(
-            onTap: () {}, // 프로필 편집 등
+            onTap: () {
+              // 프로필 편집 화면으로 이동 (미구현)
+            },
             child: Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -80,7 +84,7 @@ class MorePage extends ConsumerWidget {
           ),
           const SizedBox(height: 24),
 
-          /* ── 포인트 카드 ──────────────────────────── */
+          // 포인트 카드
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
@@ -109,10 +113,10 @@ class MorePage extends ConsumerWidget {
           ),
           const SizedBox(height: 32),
 
-          /* ── 단축 메뉴 4개 ─────────────────────────── */
-          const Row(
+          // 단축 메뉴 4개
+          Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
+            children: const [
               _QuickMenu(icon: Icons.campaign, label: '공지사항'),
               _QuickMenu(icon: Icons.event_note, label: '이벤트'),
               _QuickMenu(icon: Icons.help_outline, label: '자주묻는질문'),
@@ -121,51 +125,32 @@ class MorePage extends ConsumerWidget {
           ),
           const SizedBox(height: 40),
 
-          /* ── 자동로그인 토글 ───────────────────────── */
+          // 자동로그인 토글 (예시로 고정된 값만 사용)
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
             title: const Text('자동 로그인'),
             value: true,
-            onChanged: (v) {},
-            activeTrackColor: kPrimaryColor, // ✅ 대체 속성
+            onChanged: (v) {
+              // 토글에는 로직 추가 가능
+            },
+            activeTrackColor: kPrimaryColor,
           ),
 
-          /* ── 문자 알림 서비스 진입 버튼 ─────────────── */
-          Align(
-            alignment: Alignment.centerLeft,
-            child: TextButton(
-              style: TextButton.styleFrom(
-                padding: EdgeInsets.zero, // 왼쪽 정렬
-                foregroundColor: kPrimaryColor,
-                textStyle: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  decoration: TextDecoration.underline,
-                ),
-              ),
-              onPressed: () => context.push('/sms-alert'),
-              child: const Text('문자 알림 서비스'),
-            ),
+          // 문자 알림 서비스 진입 버튼
+          CommonListItem(
+            label: '문자 알림 서비스',
+            showArrow: true,
+            onTap: () => context.push('/sms-alert'),
           ),
-          /* ── 로그아웃 버튼 ───────────────────────────── */
-          Align(
-            alignment: Alignment.centerLeft,
-            child: TextButton(
-              style: TextButton.styleFrom(
-                padding: EdgeInsets.zero,
-                foregroundColor: Colors.red,
-                textStyle: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  decoration: TextDecoration.underline,
-                ),
-              ),
-              onPressed: () async {
-                await ref.read(authProvider.notifier).signOut();
-                if (context.mounted) context.go('/login');
-              },
-              child: const Text('로그아웃'),
-            ),
+
+          // 로그아웃 버튼
+          CommonListItem(
+            label: '로그아웃',
+            valueColor: Colors.red,
+            onTap: () async {
+              await ref.read(authProvider.notifier).signOut();
+              if (context.mounted) context.go('/login');
+            },
           ),
         ],
       ),
@@ -174,9 +159,9 @@ class MorePage extends ConsumerWidget {
 }
 
 class _QuickMenu extends StatelessWidget {
-  const _QuickMenu({required this.icon, required this.label});
   final IconData icon;
   final String label;
+  const _QuickMenu({required this.icon, required this.label});
 
   @override
   Widget build(BuildContext context) {

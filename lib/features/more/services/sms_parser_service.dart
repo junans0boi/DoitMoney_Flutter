@@ -1,7 +1,7 @@
-import 'package:permission_handler/permission_handler.dart';
 import 'package:another_telephony/telephony.dart';
-import '../utils/txn_parser.dart';
-import 'transaction_service.dart';
+import 'package:flutter/foundation.dart';
+import '../../../core/utils/transaction_message_parser.dart';
+import '../../transaction/services/transaction_service.dart';
 
 @pragma('vm:entry-point')
 void smsBackgroundHandler(SmsMessage msg) {
@@ -63,7 +63,9 @@ class SmsService {
   // }
 
   void _onMessage(SmsMessage msg) {
-    print('📱 Foreground SMS: ${msg.body}');
+    if (kDebugMode) {
+      print('📱 Foreground SMS: ${msg.body}');
+    }
     _handleBody(msg.body);
   }
 
@@ -84,13 +86,17 @@ class SmsService {
       await TransactionService.addTransaction(parsed.toModel());
     } catch (e, st) {
       // 로그만 남기고 앱 흐름엔 영향 주지 않습니다.
-      print('📱 SMS 파싱 후 가계부 등록 실패: $e\n$st');
+      if (kDebugMode) {
+        print('📱 SMS 파싱 후 가계부 등록 실패: $e\n$st');
+      }
     }
   }
 
   /// 백그라운드에서 호출될 때 사용하는 static helper
   static void _handleBackground(SmsMessage msg) {
-    print('📱 Background SMS: ${msg.body}');
+    if (kDebugMode) {
+      print('📱 Background SMS: ${msg.body}');
+    }
     SmsService()._handleBody(msg.body);
   }
 

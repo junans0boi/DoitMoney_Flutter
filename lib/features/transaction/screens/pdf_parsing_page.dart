@@ -1,13 +1,16 @@
-// lib/screens/transaction/pdf_parsing_page.dart
+// lib/features/transaction/screens/pdf_parsing_page.dart (리팩터 후)
+
 import 'package:flutter/material.dart';
 import 'package:flutter_pdf_text/flutter_pdf_text.dart';
 import 'package:intl/intl.dart';
-import 'package:doitmoney_flutter/services/account_service.dart'
-    show Account, AccountService;
-import 'package:doitmoney_flutter/services/transaction_service.dart'
-    show Transaction, TransactionService, TransactionType;
-import 'package:doitmoney_flutter/widgets/common/loading_progress_dialog.dart';
 import 'package:go_router/go_router.dart';
+import '../../../shared/widgets/loading_progress_dialog.dart';
+import '../../account/services/account_service.dart'
+    show Account, AccountService;
+import '../services/transaction_service.dart'
+    show Transaction, TransactionService, TransactionType;
+import '../../../shared/widgets/common_input.dart';
+import '../../../shared/widgets/common_button.dart';
 
 class PdfParsingPage extends StatefulWidget {
   final String path;
@@ -63,7 +66,28 @@ class _PdfParsingPageState extends State<PdfParsingPage> {
       } catch (e) {
         final msg = e.toString().toLowerCase();
         if (msg.contains('password') || msg.contains('encrypted')) {
-          final input = await _askPwd();
+          final input = await showDialog<String>(
+            context: context,
+            builder:
+                (c) => AlertDialog(
+                  title: const Text('PDF 비밀번호'),
+                  content: TextField(
+                    controller: _pwController,
+                    decoration: const InputDecoration(hintText: '비밀번호 입력'),
+                    obscureText: true,
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(c, null),
+                      child: const Text('취소'),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(c, _pwController.text),
+                      child: const Text('확인'),
+                    ),
+                  ],
+                ),
+          );
           if (input == null) throw 'PDF 비밀번호 입력 취소';
           pwd = input;
         } else {
@@ -71,32 +95,6 @@ class _PdfParsingPageState extends State<PdfParsingPage> {
         }
       }
     }
-  }
-
-  Future<String?> _askPwd() {
-    _pwController.clear();
-    return showDialog<String>(
-      context: context,
-      builder:
-          (c) => AlertDialog(
-            title: const Text('PDF 비밀번호'),
-            content: TextField(
-              controller: _pwController,
-              decoration: const InputDecoration(hintText: '비밀번호 입력'),
-              obscureText: true,
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(c, null),
-                child: const Text('취소'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(c, _pwController.text),
-                child: const Text('확인'),
-              ),
-            ],
-          ),
-    );
   }
 
   List<Transaction> _extractTransactions(String raw) {
@@ -113,8 +111,8 @@ class _PdfParsingPageState extends State<PdfParsingPage> {
       final m = rowRegex.firstMatch(line);
       if (m == null) continue;
 
-      final datePart = m.group(1)!;
-      final timePart = m.group(2)!;
+      final datePart = m.group(1)!; // YYYYMMDD
+      final timePart = m.group(2)!; // HH:mm:ss
       final category = m.group(3)!.trim();
       final outStr = m.group(4)!.replaceAll(',', '');
       final inStr = m.group(5)!.replaceAll(',', '');
@@ -204,6 +202,7 @@ class _PdfParsingPageState extends State<PdfParsingPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // 계좌 선택 드롭다운
                 DropdownButtonFormField<Account>(
                   decoration: const InputDecoration(labelText: '계좌 선택'),
                   items:
@@ -252,16 +251,10 @@ class _PdfParsingPageState extends State<PdfParsingPage> {
                     ),
                   ),
                 ),
-                FilledButton.icon(
-                  onPressed:
-                      (_txs.isEmpty || _selectedAccount == null)
-                          ? null
-                          : _upload,
-                  icon: const Icon(Icons.cloud_upload),
-                  label: const Text('등록'),
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size.fromHeight(48),
-                  ),
+                CommonElevatedButton(
+                  text: '등록',
+                  enabled: (_txs.isNotEmpty && _selectedAccount != null),
+                  onPressed: _upload,
                 ),
               ],
             ),

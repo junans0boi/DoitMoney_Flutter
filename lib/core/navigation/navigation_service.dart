@@ -1,5 +1,6 @@
-// DoitMoney_Flutter/lib/services/navigation_service.dart
+// lib/core/navigation/navigation_service.dart
 import 'package:flutter/widgets.dart';
 
-/// 전역 내비게이터 키 ― 어디서든 import 해서 사용
+/// 전역 NavigatorKey
+/// MaterialApp.router 사용 시 navigatorKey: navigationService.navigatorKey
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();

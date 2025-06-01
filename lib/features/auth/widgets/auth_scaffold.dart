@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../constants/typography.dart';
+import '../../../constants/typography.dart';
 import 'progress_bar.dart';
 
 class AuthScaffold extends StatelessWidget {

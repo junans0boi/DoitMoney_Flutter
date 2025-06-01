@@ -1,6 +1,6 @@
-import 'package:doitmoney_flutter/api/dio_client.dart';
-import 'package:doitmoney_flutter/services/push_service.dart';
-import 'package:doitmoney_flutter/services/sms_service.dart';
+import 'package:doitmoney_flutter/core/api/dio_client.dart';
+import 'package:doitmoney_flutter/features/notification/services/push_service.dart';
+import 'package:doitmoney_flutter/features/more/services/sms_parser_service.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
@@ -9,7 +9,7 @@ import 'package:intl/date_symbol_data_local.dart';
 
 import 'constants/colors.dart';
 import 'constants/typography.dart';
-import 'providers/router_provider.dart';
+import 'router.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();

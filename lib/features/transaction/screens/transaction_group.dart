@@ -1,7 +1,7 @@
 // lib/screens/transaction/transaction_group.dart
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../../constants/styles.dart';
+import '../../../constants/styles.dart';
 
 class TransactionGroupHeader extends StatelessWidget {
   final DateTime date;

@@ -1,15 +1,13 @@
-///Users/junzzang_m1/Documents/GitHub/DoitMoney_Flutter/lib/widgets/common/loading_overlay.dart
+// lib/shared/widgets/loading_overlay.dart
 import 'package:flutter/material.dart';
 
-/// 페이지 전체 로딩 블러-오버레이
+/// 페이지 전체를 블러 처리하면서 CircularProgressIndicator를 보여주는 오버레이 위젯
 class LoadingOverlay extends StatelessWidget {
   final bool isLoading;
   final Widget child;
-  const LoadingOverlay({
-    super.key,
-    required this.isLoading,
-    required this.child,
-  });
+
+  const LoadingOverlay({Key? key, required this.isLoading, required this.child})
+    : super(key: key);
 
   @override
   Widget build(BuildContext context) {

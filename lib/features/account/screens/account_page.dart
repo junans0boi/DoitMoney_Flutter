@@ -1,12 +1,17 @@
+// lib/features/account/screens/account_page.dart (리팩터 후)
+
+import 'package:doitmoney_flutter/core/utils/format_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
-import '../../constants/colors.dart';
-import '../../constants/typography.dart';
-import '../../services/account_service.dart';
+import '../../../constants/colors.dart';
+import '../../../constants/typography.dart';
+import '../../../shared/widgets/common_button.dart';
+import '../../../shared/widgets/common_dialog.dart';
+import '../../../shared/widgets/news_banner.dart';
+import '../services/account_service.dart';
 import 'add_account_page.dart';
 import 'account_detail_page.dart';
-import '../../widgets/news/news_banner.dart';
 
 class AccountPage extends ConsumerStatefulWidget {
   const AccountPage({super.key});
@@ -35,7 +40,6 @@ class _AccountPageState extends ConsumerState<AccountPage> {
     });
     await _futureAccounts;
   }
-  /* ───── CRUD 콜백 ───── */
 
   Future<void> _onAdd() async {
     final added = await Navigator.of(
@@ -52,6 +56,13 @@ class _AccountPageState extends ConsumerState<AccountPage> {
   }
 
   Future<void> _onDelete(int id) async {
+    final confirm = await showConfirmationDialog(
+      context: context,
+      title: '계좌 삭제',
+      content: '정말 이 계좌를 삭제하시겠습니까?',
+    );
+    if (!confirm) return;
+
     await AccountService.deleteAccount(id);
     if (!mounted) return;
     ScaffoldMessenger.of(context)
@@ -59,8 +70,6 @@ class _AccountPageState extends ConsumerState<AccountPage> {
       ..showSnackBar(const SnackBar(content: Text('자산이 삭제되었습니다')));
     _refresh();
   }
-
-  /* ───── UI ───── */
 
   @override
   Widget build(BuildContext context) {
@@ -128,8 +137,6 @@ class _AccountPageState extends ConsumerState<AccountPage> {
     );
   }
 
-  /* ───── 재사용 위젯들 ───── */
-
   Widget _buildEmpty() => Center(
     child: Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -140,20 +147,7 @@ class _AccountPageState extends ConsumerState<AccountPage> {
           const SizedBox(height: 24),
           Text('연결된 자산이 없어요', style: textTheme.headlineMedium),
           const SizedBox(height: 32),
-          ElevatedButton(
-            onPressed: _onAdd,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: kPrimaryColor,
-              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 32),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: const Text(
-              '자산 추가하기',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-            ),
-          ),
+          CommonElevatedButton(text: '자산 추가하기', onPressed: _onAdd),
         ],
       ),
     ),
@@ -171,7 +165,7 @@ class _AccountPageState extends ConsumerState<AccountPage> {
         const Text('총자산', style: TextStyle(color: Colors.white70)),
         const SizedBox(height: 6),
         Text(
-          _formatCurrency(total),
+          formatCurrency(total),
           style: const TextStyle(
             color: Colors.white,
             fontSize: 26,
@@ -179,13 +173,16 @@ class _AccountPageState extends ConsumerState<AccountPage> {
           ),
         ),
         const SizedBox(height: 12),
-        ElevatedButton.icon(
+        OutlinedButton.icon(
           onPressed: () {},
-          icon: const Icon(Icons.list_alt, size: 16),
-          label: Text('$count개 자산 합계', style: const TextStyle(fontSize: 12)),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.white.withOpacity(0.2),
-            foregroundColor: Colors.white,
+          icon: const Icon(Icons.list_alt, size: 16, color: Colors.white),
+          label: Text(
+            '$count개 자산 합계',
+            style: const TextStyle(fontSize: 12, color: Colors.white),
+          ),
+          style: OutlinedButton.styleFrom(
+            side: const BorderSide(color: Colors.white70),
+            backgroundColor: Colors.transparent,
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(30),
@@ -197,7 +194,6 @@ class _AccountPageState extends ConsumerState<AccountPage> {
   );
 
   Widget _buildAdBanner() {
-    // 이제 단 한 줄로
     return const Padding(
       padding: EdgeInsets.symmetric(vertical: 8),
       child: NewsBanner(
@@ -269,7 +265,7 @@ class _AccountPageState extends ConsumerState<AccountPage> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        _formatCurrency(a.balance),
+                        formatCurrency(a.balance),
                         style: const TextStyle(fontWeight: FontWeight.w700),
                       ),
                       const SizedBox(width: 4),
@@ -319,7 +315,4 @@ class _AccountPageState extends ConsumerState<AccountPage> {
       ),
     ),
   );
-
-  String _formatCurrency(num v) =>
-      '${v.round().toString().replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (m) => ',')}원';
 }

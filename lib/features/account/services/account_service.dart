@@ -1,8 +1,11 @@
-// lib/services/account_service.dart
-import '../api/dio_client.dart';
+// lib/features/account/services/account_service.dart
 
+import '../../../core/api/dio_client.dart';
+
+// ignore: constant_identifier_names
 enum AccountType { BANK, CARD, CASH, ETC }
 
+// ignore: constant_identifier_names
 enum BankDetail { DEMAND, SAVINGS, OVERDRAFT, PENSION }
 
 class Account {
@@ -28,24 +31,20 @@ class Account {
     final name = j['institutionName'] as String;
     return Account(
       id: j['id'] as int,
-
-      // 1) accountType
       accountType: AccountType.values.firstWhere(
         (e) => e.name == j['accountType'] as String,
       ),
-
-      // 2) detailType
       detailType: BankDetail.values.firstWhere(
         (e) => e.name == j['detailType'] as String,
-        orElse: () => BankDetail.DEMAND, // 없으면 DEMAND 로 기본 지정
+        orElse: () => BankDetail.DEMAND,
       ),
-
       institutionName: name,
       accountNumber: j['accountNumber'] as String? ?? '',
       balance: (j['balance'] as num).toDouble(),
       logoPath: AccountService.logos[name] ?? 'assets/images/default_bank.png',
     );
   }
+
   Map<String, dynamic> toJson() => {
     'accountType': accountType.name,
     'detailType': detailType.name,
@@ -78,7 +77,6 @@ class AccountService {
     await dio.delete('/accounts/$id');
   }
 
-  /* 은행 로고 */
   static const Map<String, String> bankLogos = {
     'KB국민은행': 'assets/banks/kb.png',
     '우리은행': 'assets/banks/won.png',
@@ -104,7 +102,6 @@ class AccountService {
     '광주은행': 'assets/banks/jb.png',
   };
 
-  /* 카드 로고 (중복 키가 존재하므로 뒤에서 덮어쓴다) */
   static const Map<String, String> cardLogos = {
     'KB국민카드': 'assets/banks/kb.png',
     '삼성카드': 'assets/banks/samsung.png',
@@ -120,6 +117,5 @@ class AccountService {
     '토스뱅크': 'assets/banks/toss.png',
   };
 
-  /* 은행 + 카드 통합 (중복은 카드 우선) – const → final 로 수정하여 컴파일 오류 제거 */
   static final Map<String, String> logos = {...bankLogos, ...cardLogos};
 }

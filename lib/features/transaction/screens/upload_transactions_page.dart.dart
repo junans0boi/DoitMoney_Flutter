@@ -2,9 +2,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import 'pdf_parsing_page.dart';
-import 'xlsx_parsing_page.dart';
-import '../../constants/colors.dart';
+import '../../../constants/colors.dart';
 
 /// 거래내역 파일 선택 진입점
 class ImportTransactionsPage extends StatelessWidget {

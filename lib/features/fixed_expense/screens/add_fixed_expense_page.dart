@@ -2,9 +2,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../services/fixed_expense_service.dart';
-import '../../services/account_service.dart';
-import '../../providers/transaction_providers.dart'; // <-- provides accountsProvider
+import '../services/fixed_expense_service.dart';
+import '../../account/services/account_service.dart';
+import '../../transaction/providers/transaction_provider.dart'; // <-- provides accountsProvider
 
 class AddFixedExpensePage extends ConsumerStatefulWidget {
   final FixedExpense? editing;

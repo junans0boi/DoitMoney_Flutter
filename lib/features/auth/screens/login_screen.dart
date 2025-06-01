@@ -1,14 +1,13 @@
-// lib/screens/auth/login_screen.dart
+// lib/features/auth/screens/login_screen.dart (리팩터 후)
 
+import 'package:doitmoney_flutter/features/auth/widgets/auth_scaffold.dart';
+import 'package:doitmoney_flutter/features/auth/widgets/sns_button.dart';
+import 'package:doitmoney_flutter/shared/widgets/common_button.dart';
+import 'package:doitmoney_flutter/shared/widgets/common_input.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
-import '../../widgets/auth/auth_input.dart';
-import '../../widgets/auth/auth_button.dart';
-import '../../widgets/auth/sns_button.dart';
-import '../../widgets/auth/auth_scaffold.dart';
-import '../../providers/auth_provider.dart';
+import '../providers/auth_provider.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
@@ -18,26 +17,26 @@ class LoginPage extends ConsumerStatefulWidget {
 }
 
 class _LoginPageState extends ConsumerState<LoginPage> {
-  final email = TextEditingController();
-  final password = TextEditingController();
+  final emailCtrl = TextEditingController();
+  final passwordCtrl = TextEditingController();
 
-  bool get _formOk => email.text.isNotEmpty && password.text.isNotEmpty;
+  bool get _formOk => emailCtrl.text.isNotEmpty && passwordCtrl.text.isNotEmpty;
 
   @override
   void initState() {
     super.initState();
-    email.addListener(_onChanged);
-    password.addListener(_onChanged);
+    emailCtrl.addListener(_onChanged);
+    passwordCtrl.addListener(_onChanged);
   }
 
   void _onChanged() => setState(() {});
 
   @override
   void dispose() {
-    email
+    emailCtrl
       ..removeListener(_onChanged)
       ..dispose();
-    password
+    passwordCtrl
       ..removeListener(_onChanged)
       ..dispose();
     super.dispose();
@@ -48,11 +47,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
     final ok = await ref
         .read(authProvider.notifier)
-        .signIn(email.text.trim(), password.text.trim());
-
+        .signIn(emailCtrl.text.trim(), passwordCtrl.text.trim());
     if (!mounted) return;
     if (ok) {
-      // 로그인 성공 시 홈 화면으로 이동
       context.go('/');
     } else {
       ScaffoldMessenger.of(
@@ -74,15 +71,19 @@ class _LoginPageState extends ConsumerState<LoginPage> {
             style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 24),
-          AuthInput(
+          CommonInput(
             hint: '아이디 (이메일)',
-            controller: email,
+            controller: emailCtrl,
             keyboardType: TextInputType.emailAddress,
           ),
           const SizedBox(height: 16),
-          AuthInput(hint: '비밀번호', controller: password, obscure: true),
+          CommonInput(hint: '비밀번호', controller: passwordCtrl, obscure: true),
           const SizedBox(height: 24),
-          AuthButton(text: '로그인하기', enabled: _formOk, onPressed: _handleLogin),
+          CommonElevatedButton(
+            text: '로그인하기',
+            onPressed: _formOk ? _handleLogin : null,
+            enabled: _formOk,
+          ),
           const SizedBox(height: 32),
           const Center(
             child: Text.rich(
@@ -94,7 +95,42 @@ class _LoginPageState extends ConsumerState<LoginPage> {
             ),
           ),
           const SizedBox(height: 16),
-          _snsRow(),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: const [
+              SnsButton(
+                background: Color(0xFF03C75A),
+                child: Text(
+                  'N',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              SizedBox(width: 20),
+              SnsButton(
+                background: Color(0xFFFEE500),
+                child: Text(
+                  'K',
+                  style: TextStyle(
+                    color: Color(0xFF191600),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              SizedBox(width: 20),
+              SnsButton(
+                background: Color(0xFF4267B2),
+                child: Icon(Icons.facebook, color: Colors.white),
+              ),
+              SizedBox(width: 20),
+              SnsButton(
+                background: Colors.black,
+                child: Icon(Icons.apple, color: Colors.white),
+              ),
+            ],
+          ),
         ],
       ),
       footer: Column(
@@ -114,47 +150,12 @@ class _LoginPageState extends ConsumerState<LoginPage> {
             ],
           ),
           const SizedBox(height: 12),
-          AuthButton(
+          CommonOutlinedButton(
             text: '계정이 없으신가요? 간편가입하기',
-            outline: true,
             onPressed: () => context.push('/signup'),
           ),
         ],
       ),
     );
   }
-
-  Widget _snsRow() => Row(
-    mainAxisAlignment: MainAxisAlignment.center,
-    children: const [
-      SnsButton(
-        background: Color(0xFF03C75A),
-        child: Text(
-          'N',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
-        ),
-      ),
-      SizedBox(width: 20),
-      SnsButton(
-        background: Color(0xFFFEE500),
-        child: Text(
-          'K',
-          style: TextStyle(
-            color: Color(0xFF191600),
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ),
-      SizedBox(width: 20),
-      SnsButton(
-        background: Color(0xFF4267B2),
-        child: Icon(Icons.facebook, color: Colors.white),
-      ),
-      SizedBox(width: 20),
-      SnsButton(
-        background: Colors.black,
-        child: Icon(Icons.apple, color: Colors.white),
-      ),
-    ],
-  );
 }

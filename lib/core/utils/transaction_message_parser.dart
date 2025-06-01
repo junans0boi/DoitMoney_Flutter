@@ -1,5 +1,5 @@
 // lib/utils/txn_parser.dart
-import '../services/transaction_service.dart';
+import '../../features/transaction/services/transaction_service.dart';
 
 /* ───── 1) 모델 클래스 ───── */
 class ParsedTxn {

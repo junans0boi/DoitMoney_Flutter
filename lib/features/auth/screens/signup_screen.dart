@@ -1,13 +1,16 @@
-// lib/screens/auth/signup_screen.dart
+// lib/features/auth/screens/signup_screen.dart (리팩터 후)
+
+// ignore_for_file: unused_import
+
 import 'dart:async';
+import 'package:doitmoney_flutter/features/auth/widgets/auth_scaffold.dart';
+import 'package:doitmoney_flutter/shared/widgets/common_button.dart';
+import 'package:doitmoney_flutter/shared/widgets/common_input.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
-import '../../widgets/auth/auth_input.dart';
-import '../../widgets/auth/auth_button.dart';
-import '../../widgets/auth/auth_scaffold.dart';
-import '../../constants/colors.dart';
-import '../../services/auth_service.dart';
+import '../../../constants/colors.dart';
+import '../services/auth_service.dart';
 
 enum SignupStage { enterEmail, enterCode, enterDetails }
 
@@ -40,12 +43,12 @@ class _SignupPageState extends State<SignupPage> {
   SignupStage _stage = SignupStage.enterEmail;
 
   // controllers
-  final _email = TextEditingController();
-  final _code = TextEditingController();
-  final _phone = TextEditingController();
-  final _user = TextEditingController();
-  final _pw1 = TextEditingController();
-  final _pw2 = TextEditingController();
+  final _emailCtrl = TextEditingController();
+  final _codeCtrl = TextEditingController();
+  final _phoneCtrl = TextEditingController();
+  final _userCtrl = TextEditingController();
+  final _pw1Ctrl = TextEditingController();
+  final _pw2Ctrl = TextEditingController();
 
   // UI state
   String _feedback = '';
@@ -60,28 +63,28 @@ class _SignupPageState extends State<SignupPage> {
   @override
   void initState() {
     super.initState();
-    _email.addListener(_onEmailChanged);
-    _code.addListener(() => setState(() {}));
-    _pw1.addListener(() => setState(() {}));
-    _pw2.addListener(() => setState(() {}));
-    _phone.addListener(_onPhoneChanged);
-    _user.addListener(() => setState(() {}));
+    _emailCtrl.addListener(_onEmailChanged);
+    _codeCtrl.addListener(() => setState(() {}));
+    _pw1Ctrl.addListener(() => setState(() {}));
+    _pw2Ctrl.addListener(() => setState(() {}));
+    _phoneCtrl.addListener(_onPhoneChanged);
+    _userCtrl.addListener(() => setState(() {}));
   }
 
   @override
   void dispose() {
     _timer?.cancel();
-    _email.dispose();
-    _code.dispose();
-    _phone.dispose();
-    _user.dispose();
-    _pw1.dispose();
-    _pw2.dispose();
+    _emailCtrl.dispose();
+    _codeCtrl.dispose();
+    _phoneCtrl.dispose();
+    _userCtrl.dispose();
+    _pw1Ctrl.dispose();
+    _pw2Ctrl.dispose();
     super.dispose();
   }
 
   void _onEmailChanged() {
-    final e = _email.text.trim();
+    final e = _emailCtrl.text.trim();
     if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(e)) {
       setState(() {
         _emailOk = false;
@@ -107,7 +110,7 @@ class _SignupPageState extends State<SignupPage> {
   }
 
   void _onPhoneChanged() {
-    final raw = _phone.text.replaceAll('-', '');
+    final raw = _phoneCtrl.text.replaceAll('-', '');
     final fmtOk = raw.length == 11;
     setState(() {
       _phoneFormatOk = fmtOk;
@@ -150,22 +153,21 @@ class _SignupPageState extends State<SignupPage> {
     try {
       switch (_stage) {
         case SignupStage.enterEmail:
-          // 1) 이메일 → 인증번호 요청
           setState(() {
             _stage = SignupStage.enterCode;
             _emailSent = true;
           });
           _startCooldown();
-          await AuthService.sendVerificationCode(_email.text.trim());
+          await AuthService.sendVerificationCode(_emailCtrl.text.trim());
           setState(() => _feedback = '인증번호가 발송되었습니다.');
           break;
 
         case SignupStage.enterCode:
-          // 2) 인증번호 검증
-          if (await AuthService.verifyCode(
-            _email.text.trim(),
-            _code.text.trim(),
-          )) {
+          final ok = await AuthService.verifyCode(
+            _emailCtrl.text.trim(),
+            _codeCtrl.text.trim(),
+          );
+          if (ok) {
             setState(() => _stage = SignupStage.enterDetails);
           } else {
             setState(() => _feedback = '인증번호가 올바르지 않습니다.');
@@ -173,15 +175,13 @@ class _SignupPageState extends State<SignupPage> {
           break;
 
         case SignupStage.enterDetails:
-          // 3) 최종 가입
           await AuthService.register(
-            email: _email.text.trim(),
-            code: _code.text.trim(),
-            phone: _phone.text.replaceAll('-', ''),
-            password: _pw1.text,
-            username: _user.text.trim(),
+            email: _emailCtrl.text.trim(),
+            code: _codeCtrl.text.trim(),
+            phone: _phoneCtrl.text.replaceAll('-', ''),
+            password: _pw1Ctrl.text,
+            username: _userCtrl.text.trim(),
           );
-          // 성공 시에만 이동
           if (!mounted) return;
           context.go('/login');
           break;
@@ -207,9 +207,9 @@ class _SignupPageState extends State<SignupPage> {
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 16),
-            AuthInput(
+            CommonInput(
               hint: '이메일',
-              controller: _email,
+              controller: _emailCtrl,
               keyboardType: TextInputType.emailAddress,
             ),
             if (_feedback.isNotEmpty) ...[
@@ -217,18 +217,22 @@ class _SignupPageState extends State<SignupPage> {
               Text(
                 _feedback,
                 style: TextStyle(
-                  color: _emailOk ? kSuccess : kError,
+                  color: _emailOk ? Colors.green : Colors.red,
                   fontSize: 12,
                 ),
               ),
             ],
           ],
         );
-        footer = AuthButton(text: '다음', enabled: can, onPressed: _next);
+        footer = CommonElevatedButton(
+          text: '다음',
+          enabled: can,
+          onPressed: _next,
+        );
         break;
 
       case SignupStage.enterCode:
-        final can = _code.text.trim().length == 6;
+        final can = _codeCtrl.text.trim().length == 6;
         body = Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -237,9 +241,9 @@ class _SignupPageState extends State<SignupPage> {
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 16),
-            AuthInput(
+            CommonInput(
               hint: '6자리 코드',
-              controller: _code,
+              controller: _codeCtrl,
               keyboardType: TextInputType.number,
               inputFormatters: [
                 FilteringTextInputFormatter.digitsOnly,
@@ -250,7 +254,7 @@ class _SignupPageState extends State<SignupPage> {
               const SizedBox(height: 8),
               Text(
                 _feedback,
-                style: const TextStyle(color: kError, fontSize: 12),
+                style: const TextStyle(color: Colors.red, fontSize: 12),
               ),
             ],
           ],
@@ -258,7 +262,11 @@ class _SignupPageState extends State<SignupPage> {
         footer = Row(
           children: [
             Expanded(
-              child: AuthButton(text: '다음', enabled: can, onPressed: _next),
+              child: CommonElevatedButton(
+                text: '다음',
+                enabled: can,
+                onPressed: _next,
+              ),
             ),
             const SizedBox(width: 12),
             TextButton(
@@ -279,12 +287,12 @@ class _SignupPageState extends State<SignupPage> {
         break;
 
       case SignupStage.enterDetails:
-        final pwLenOk = _pw1.text.length >= 8;
-        final pwMatch = _pw1.text == _pw2.text;
+        final pwLenOk = _pw1Ctrl.text.length >= 8;
+        final pwMatch = _pw1Ctrl.text == _pw2Ctrl.text;
         final can =
             _phoneFormatOk &&
             _phoneAvailable &&
-            _user.text.trim().length >= 2 &&
+            _userCtrl.text.trim().length >= 2 &&
             pwLenOk &&
             pwMatch;
 
@@ -296,11 +304,9 @@ class _SignupPageState extends State<SignupPage> {
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 16),
-
-            // 전화번호
-            AuthInput(
+            CommonInput(
               hint: '전화번호 (010-1234-5678)',
-              controller: _phone,
+              controller: _phoneCtrl,
               keyboardType: TextInputType.number,
               inputFormatters: [
                 FilteringTextInputFormatter.digitsOnly,
@@ -311,45 +317,48 @@ class _SignupPageState extends State<SignupPage> {
             Text(
               _phoneMsg,
               style: TextStyle(
-                color: _phoneAvailable ? kSuccess : kError,
+                color: _phoneAvailable ? Colors.green : Colors.red,
                 fontSize: 12,
               ),
             ),
             const SizedBox(height: 12),
-
-            // 사용자 이름
-            AuthInput(hint: '사용자 이름 (2자 이상)', controller: _user),
+            CommonInput(hint: '사용자 이름 (2자 이상)', controller: _userCtrl),
             const SizedBox(height: 4),
-
-            // 비밀번호
-            AuthInput(hint: '비밀번호 (최소 8자)', controller: _pw1, obscure: true),
+            CommonInput(
+              hint: '비밀번호 (최소 8자)',
+              controller: _pw1Ctrl,
+              obscure: true,
+            ),
             Text(
               pwLenOk ? '✔ 비밀번호가 8자 이상입니다.' : '✘ 비밀번호는 8자 이상이어야 합니다.',
               style: TextStyle(
-                color: pwLenOk ? kSuccess : kError,
+                color: pwLenOk ? Colors.green : Colors.red,
                 fontSize: 12,
               ),
             ),
             const SizedBox(height: 12),
-            AuthInput(hint: '비밀번호 확인', controller: _pw2, obscure: true),
+            CommonInput(hint: '비밀번호 확인', controller: _pw2Ctrl, obscure: true),
             Text(
               pwMatch ? '✔ 비밀번호가 일치합니다.' : '✘ 비밀번호가 일치하지 않습니다.',
               style: TextStyle(
-                color: pwMatch ? kSuccess : kError,
+                color: pwMatch ? Colors.green : Colors.red,
                 fontSize: 12,
               ),
             ),
-
             if (_feedback.isNotEmpty) ...[
               const SizedBox(height: 8),
               Text(
                 _feedback,
-                style: const TextStyle(color: kError, fontSize: 12),
+                style: const TextStyle(color: Colors.red, fontSize: 12),
               ),
             ],
           ],
         );
-        footer = AuthButton(text: '가입 완료', enabled: can, onPressed: _next);
+        footer = CommonElevatedButton(
+          text: '가입 완료',
+          enabled: can,
+          onPressed: _next,
+        );
         break;
     }
 

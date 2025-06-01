@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../constants/colors.dart';
+import '../../../../constants/colors.dart';
 
 class ProgressBar extends StatelessWidget {
   final double ratio; // 0.0 ~ 1.0

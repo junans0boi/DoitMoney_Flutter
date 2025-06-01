@@ -1,8 +1,8 @@
 // lib/screens/account/add_account_page.dart
 import 'package:flutter/material.dart';
-import 'package:doitmoney_flutter/services/account_service.dart'
+import 'package:doitmoney_flutter/features/account/services/account_service.dart'
     show Account, AccountService, AccountType, BankDetail;
-import '../../constants/colors.dart'; // colors 만 상대경로로
+import '../../../constants/colors.dart'; // colors 만 상대경로로
 
 /// BankDetail enum 은 DEMAND, SAVINGS, OVERDRAFT, PENSION 으로 정의되어 있으니
 /// extension 도 그에 맞춰 대문자로 씁니다.

@@ -1,5 +1,5 @@
 //lib/services/news_service.dart
-import '../api/dio_client.dart';
+import '../../../core/api/dio_client.dart';
 
 class NewsArticle {
   final String title;

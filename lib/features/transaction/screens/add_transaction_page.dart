@@ -1,11 +1,14 @@
-// lib/screens/transaction/add_transaction_page.dart
-import 'package:doitmoney_flutter/services/account_service.dart';
+// lib/features/transaction/screens/add_transaction_page.dart (리팩터 후)
+
+import 'package:doitmoney_flutter/features/transaction/providers/transaction_provider.dart';
+import 'package:doitmoney_flutter/shared/widgets/common_button.dart';
+import 'package:doitmoney_flutter/shared/widgets/common_list_item.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import '../../services/transaction_service.dart' as tx_svc;
-import '../../services/fixed_expense_service.dart' as fx_svc;
-import '../../providers/transaction_providers.dart';
+import '../../account/services/account_service.dart';
+import '../services/transaction_service.dart' as tx_svc;
+import '../../fixed_expense/services/fixed_expense_service.dart' as fx_svc;
 
 class AddTransactionPage extends ConsumerStatefulWidget {
   final tx_svc.Transaction? existing;
@@ -143,7 +146,7 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
       try {
         await fx_svc.FixedExpenseService.addFixedExpense(fe);
       } catch (e) {
-        // parsing or server error—log but don’t block the pop
+        // 파싱 또는 서버 오류는 로그만
         debugPrint('fixed-expense registration failed: $e');
       }
     }
@@ -198,22 +201,20 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
               const SizedBox(height: 16),
 
               // 일시
-              ListTile(
-                title: const Text('거래 일시'),
-                subtitle: Text(
-                  DateFormat(
-                    'yyyy. M. d. a h:mm',
-                    'ko',
-                  ).format(_selectedDateTime),
-                ),
+              CommonListItem(
+                label: '거래 일시',
+                value: DateFormat(
+                  'yyyy. M. d. a h:mm',
+                  'ko',
+                ).format(_selectedDateTime),
+                showArrow: true,
                 onTap: _pickDateTime,
               ),
-              const Divider(),
+              const Divider(height: 1),
 
-              // 계좌
+              // 계좌 선택
               accountsAsync.when(
                 data: (list) {
-                  // 편집 모드 시, 처음 빌드될 때 기존 거래의 계좌를 찾아 선택
                   if (_selectedAccountObj == null && widget.existing != null) {
                     final ex = widget.existing!;
                     _selectedAccountObj = list.firstWhere(
@@ -223,7 +224,6 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
                       orElse: () => list.first,
                     );
                   }
-
                   return DropdownButtonFormField<Account>(
                     decoration: const InputDecoration(labelText: '계좌 선택'),
                     hint: const Text('계좌 선택'),
@@ -246,7 +246,7 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
                   );
                 },
                 loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, _) => Text('오류: $e'),
+                error: (e, _) => Center(child: Text('오류: $e')),
               ),
               const SizedBox(height: 16),
 
@@ -255,7 +255,6 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
                 builder: (_) {
                   final currentCategory = _category;
                   final categoryItems = List<String>.from(_categories);
-                  // 편집 모드에서 _categories 에 없는 값이 있을 경우 맨 앞에 추가
                   if (!categoryItems.contains(currentCategory)) {
                     categoryItems.insert(0, currentCategory);
                   }
@@ -281,7 +280,7 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
               ),
               const SizedBox(height: 16),
 
-              // 매월 지출 등록
+              // 매월 지출 등록 토글
               SwitchListTile(
                 title: const Text('매월 지출 등록'),
                 value: _isFixed,
@@ -289,14 +288,11 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
               ),
               const SizedBox(height: 32),
 
-              // 저장
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton(
-                  onPressed: _canSave ? _save : null,
-                  child: Text(widget.existing == null ? '저장하기' : '수정하기'),
-                ),
+              // 저장 버튼
+              CommonElevatedButton(
+                text: widget.existing == null ? '저장하기' : '수정하기',
+                enabled: _canSave,
+                onPressed: _save,
               ),
             ],
           ),

@@ -1,6 +1,11 @@
+// lib/features/account/screens/account_detail_page.dart (리팩터 후)
+
 import 'package:flutter/material.dart';
-import '../../services/account_service.dart';
+import '../../../shared/widgets/common_list_item.dart';
+import '../../../shared/widgets/currency_text.dart';
+import '../services/account_service.dart';
 import 'add_account_page.dart';
+import '../../../shared/widgets/common_dialog.dart';
 
 class AccountDetailPage extends StatefulWidget {
   final Account account;
@@ -13,7 +18,14 @@ class AccountDetailPage extends StatefulWidget {
 class _AccountDetailPageState extends State<AccountDetailPage> {
   bool _hidden = false;
 
-  Future<void> _delete() async {
+  Future<void> _onDeletePressed() async {
+    final confirm = await showConfirmationDialog(
+      context: context,
+      title: '정말 삭제하시겠습니까?',
+      content: '한 번 삭제된 자산은 복구할 수 없습니다.',
+    );
+    if (!confirm) return;
+
     await AccountService.deleteAccount(widget.account.id);
     if (!mounted) return;
     Navigator.of(context).pop(true);
@@ -22,7 +34,7 @@ class _AccountDetailPageState extends State<AccountDetailPage> {
     ).showSnackBar(const SnackBar(content: Text('자산이 삭제되었습니다')));
   }
 
-  Future<void> _edit() async {
+  Future<void> _onEditPressed() async {
     final updated = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
         builder: (_) => AddAccountPage(editing: widget.account),
@@ -38,8 +50,11 @@ class _AccountDetailPageState extends State<AccountDetailPage> {
       appBar: AppBar(
         title: const Text('자산 상세'),
         actions: [
-          IconButton(icon: const Icon(Icons.edit), onPressed: _edit),
-          IconButton(icon: const Icon(Icons.delete), onPressed: _delete),
+          IconButton(icon: const Icon(Icons.edit), onPressed: _onEditPressed),
+          IconButton(
+            icon: const Icon(Icons.delete),
+            onPressed: _onDeletePressed,
+          ),
         ],
       ),
       body: ListView(
@@ -59,18 +74,32 @@ class _AccountDetailPageState extends State<AccountDetailPage> {
             ],
           ),
           const SizedBox(height: 24),
-          Text(
-            _currency(a.balance),
-            style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
+
+          // 공통 위젯으로 분리된 CurrencyText 사용
+          CurrencyText(
+            amount: a.balance,
+            fontSize: 32,
+            fontWeight: FontWeight.bold,
           ),
+
           const SizedBox(height: 32),
 
-          _item('계좌번호', a.accountNumber.isEmpty ? '-' : a.accountNumber),
-          _divider(),
-          _item('유형', a.accountType.name),
-          _divider(),
-          _item('잔액', _currency(a.balance)),
-          _divider(),
+          // CommonListItem 을 활용하여 중복 제거
+          CommonListItem(
+            label: '계좌번호',
+            value: a.accountNumber.isEmpty ? '-' : a.accountNumber,
+            showArrow: false,
+          ),
+          const Divider(height: 1),
+          CommonListItem(label: '유형', value: a.accountType.name),
+          const Divider(height: 1),
+          CommonListItem(
+            label: '잔액',
+            // 다시 CurrencyText 위젯을 중첩해도 되지만, 간단히 텍스트로 표시
+            value:
+                '${a.balance.round().toString().replaceAllMapped(RegExp(r"\B(?=(\d{3})+(?!\d))"), (m) => ",")}원',
+          ),
+          const Divider(height: 1),
 
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
@@ -78,25 +107,15 @@ class _AccountDetailPageState extends State<AccountDetailPage> {
             value: _hidden,
             onChanged: (v) => setState(() => _hidden = v),
           ),
-          _divider(),
+          const Divider(height: 1),
+
           ListTile(
             contentPadding: EdgeInsets.zero,
             title: const Text('삭제하기', style: TextStyle(color: Colors.red)),
-            onTap: _delete,
+            onTap: _onDeletePressed,
           ),
         ],
       ),
     );
   }
-
-  Widget _item(String label, String value) => ListTile(
-    contentPadding: EdgeInsets.zero,
-    title: Text(label),
-    trailing: Text(value),
-  );
-
-  Widget _divider() => const Divider(height: 1);
-
-  String _currency(num v) =>
-      '${v.round().toString().replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (m) => ',')}원';
 }

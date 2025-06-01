@@ -1,7 +1,7 @@
 // lib/providers/news_provider.dart
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../services/news_service.dart';
+import '../services/news_api_service.dart';
 
 /// 오늘자 뉴스 목록 – ref.keepAlive() + Timer 로 24시간 후 만료
 final newsProvider = FutureProvider<List<NewsArticle>>((ref) {

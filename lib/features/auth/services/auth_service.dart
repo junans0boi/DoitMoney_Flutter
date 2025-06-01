@@ -1,7 +1,8 @@
-// lib/services/auth_service.dart
-import 'package:dio/dio.dart' show DioException;
-import '../api/dio_client.dart';
-import 'secure_storage_service.dart';
+// lib/features/auth/services/auth_service.dart
+
+import 'package:dio/dio.dart';
+import '../../../core/api/dio_client.dart';
+import '../../../core/services/secure_storage_service.dart';
 
 /// 백엔드로부터 받아오는 사용자 프로필 데이터 구조
 class UserProfile {
@@ -39,7 +40,6 @@ class AuthService {
     );
     if (res.statusCode != 200) return false;
 
-    // 만약 accessToken이 body에 있으면 secure storage에 저장
     if (res.data is Map<String, dynamic> && res.data['accessToken'] is String) {
       await _secure.write('access_token', res.data['accessToken']);
     }
@@ -64,7 +64,6 @@ class AuthService {
     return await _secure.read('access_token');
   }
 
-  /// ─── 회원가입 흐름 ───
   /// 이메일 중복 체크
   static Future<bool> checkEmailAvailable(String email) async {
     final res = await dio.get(
@@ -135,7 +134,7 @@ class AuthService {
     }
   }
 
-  /// ─── 전화번호 중복 체크 ───
+  /// 전화번호 중복 체크
   static Future<bool> checkPhoneAvailable(String phone) async {
     try {
       final res = await dio.get(
@@ -148,14 +147,13 @@ class AuthService {
     }
   }
 
-  /// ─── 아이디(이메일) 찾기 ───
+  /// 아이디(이메일) 찾기
   static Future<String?> findIdByPhone(String phone) async {
     try {
       final res = await dio.get(
         '/recover/find-id',
         queryParameters: {'phone': phone},
       );
-      // 백엔드에서 { "email": "" } 으로 리턴할 수 있으므로
       final masked = res.data['email'] as String;
       return masked.isEmpty ? null : masked;
     } on DioException {
@@ -163,9 +161,7 @@ class AuthService {
     }
   }
 
-  /// ─── 비밀번호 재설정 흐름 ───
-
-  /// 1) 비밀번호 재설정용 인증번호(코드) 요청
+  /// 비밀번호 재설정용 인증번호(코드) 요청
   static Future<void> sendResetMail(String email) async {
     final res = await dio.post('/recover/reset-mail', data: {'email': email});
     if (res.statusCode != 200) {
@@ -173,7 +169,7 @@ class AuthService {
     }
   }
 
-  /// 2) 비밀번호 재설정용 인증번호(코드) 검증
+  /// 비밀번호 재설정용 인증번호(코드) 검증
   static Future<bool> verifyResetCode({
     required String email,
     required String code,
@@ -185,7 +181,7 @@ class AuthService {
     return res.statusCode == 200;
   }
 
-  /// 3) 비밀번호 재설정 (새 비밀번호 저장)
+  /// 새 비밀번호 저장
   static Future<void> resetPassword({
     required String email,
     required String code,
