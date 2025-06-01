@@ -3,10 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:dio/dio.dart';
 
 import '../../constants/colors.dart';
 import '../../features/auth/providers/user_provider.dart';
 import '../../features/transaction/providers/transaction_provider.dart';
+import '../../core/api/dio_client.dart'; // ← 추가
 
 /// 메인 Shell 위젯: AppBar와 BottomNavigationBar를 공통으로 관리합니다.
 /// - child로 실제 탭 내부 위젯을 전달받습니다.
@@ -34,6 +36,19 @@ class _AppShellState extends ConsumerState<AppShell> {
     final routeInfo = GoRouter.of(context).routeInformationProvider.value;
     final idx = _locationToIndex(routeInfo.uri.path);
 
+    // ── 프로필 이미지 URL 조립 (dio.options.baseUrl 에서 "/api" 제거) ──
+    String? avatarUrl;
+    if (me?.profileImageUrl != null && me!.profileImageUrl.isNotEmpty) {
+      // dio.options.baseUrl 예: "http://doitmoney.kro.kr/api"
+      final hostOnly = dio.options.baseUrl.replaceAll(RegExp(r'/api/?$'), '');
+      avatarUrl =
+          me.profileImageUrl.startsWith('http')
+              ? me.profileImageUrl
+              : '$hostOnly${me.profileImageUrl}';
+      // avatarUrl 예시: "http://doitmoney.kro.kr/static/profiles/xxxx.png"
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+
     // ── 상단 AppBar ─────────────────────────────────
     final appBar = AppBar(
       titleSpacing: 0,
@@ -47,7 +62,13 @@ class _AppShellState extends ConsumerState<AppShell> {
           children: [
             CircleAvatar(
               radius: 18,
-              backgroundImage: NetworkImage(me?.profileImageUrl ?? ''),
+              backgroundColor: Colors.grey.shade200,
+              backgroundImage:
+                  avatarUrl != null ? NetworkImage(avatarUrl) : null,
+              child:
+                  avatarUrl == null
+                      ? const Icon(Icons.person, size: 18, color: Colors.grey)
+                      : null,
             ),
             const SizedBox(width: 8),
             Text(

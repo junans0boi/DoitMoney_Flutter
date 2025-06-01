@@ -1,5 +1,8 @@
+// lib/main.dart
+
 import 'package:doitmoney_flutter/core/api/dio_client.dart';
 import 'package:doitmoney_flutter/features/notification/services/push_service.dart';
+import 'package:doitmoney_flutter/features/more/providers/more_providers.dart';
 import 'package:doitmoney_flutter/features/more/services/sms_parser_service.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -25,11 +28,8 @@ Future<void> main() async {
   // ① Dio 초기화
   await initDio();
 
-  // SMS 리스너 초기화
+  // SMS 리스너 초기화 (한 번만 호출해도 됩니다)
   await SmsService().init();
-
-  // // ③ Reminder Service 세팅
-  // await initReminderService();
 
   // 백그라운드 FCM 핸들러 등록
   FirebaseMessaging.onBackgroundMessage(_fcmBackground);
@@ -40,7 +40,7 @@ Future<void> main() async {
 @pragma('vm:entry-point')
 Future<void> _fcmBackground(RemoteMessage msg) async {
   await Firebase.initializeApp(); // isolate 재초기화
-  await handlePush(msg); // ✅ 공개 함수 호출
+  await handlePush(msg); // PushService의 공개 함수 호출
 }
 
 class DoitMoneyApp extends ConsumerWidget {
@@ -48,7 +48,12 @@ class DoitMoneyApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // darkModeProvider를 구독해서 테마 모드를 결정
+    final isDarkMode = ref.watch(darkModeProvider);
+
+    // GoRouter 설정 (routerProvider는 기존에 정의된 router를 가리킵니다)
     final router = ref.watch(routerProvider);
+
     return MaterialApp.router(
       routerConfig: router,
       debugShowCheckedModeBanner: false,
@@ -56,14 +61,30 @@ class DoitMoneyApp extends ConsumerWidget {
       theme: ThemeData(
         fontFamily: 'GmarketSans',
         textTheme: textTheme,
-        primaryColor: kPrimary,
+        primaryColor: kPrimaryColor,
         scaffoldBackgroundColor: kBackground,
         appBarTheme: const AppBarTheme(
           backgroundColor: kBackground,
-          foregroundColor: kPrimary,
+          foregroundColor: kPrimaryColor,
           elevation: 0,
         ),
+        brightness: Brightness.light,
+        // 추가적인 라이트 테마 설정이 필요하다면 여기에 작성
       ),
+      darkTheme: ThemeData(
+        fontFamily: 'GmarketSans',
+        textTheme: textTheme,
+        primaryColor: kPrimaryColor,
+        scaffoldBackgroundColor: const Color(0xFF121212),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xFF121212),
+          foregroundColor: kPrimaryColor,
+          elevation: 0,
+        ),
+        brightness: Brightness.dark,
+        // 추가적인 다크 테마 설정이 필요하다면 여기에 작성
+      ),
+      themeMode: isDarkMode ? ThemeMode.dark : ThemeMode.light,
     );
   }
 }

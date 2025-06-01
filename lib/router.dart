@@ -1,5 +1,9 @@
 // lib/providers/router_provider.dart
+import 'package:doitmoney_flutter/features/auth/screens/profile_edit_page.dart';
 import 'package:doitmoney_flutter/features/fixed_expense/screens/fixed_expense_list_page.dart';
+import 'package:doitmoney_flutter/features/more/screens/customer_service_page.dart';
+import 'package:doitmoney_flutter/features/more/screens/privacy_policy_page.dart';
+import 'package:doitmoney_flutter/features/more/screens/terms_of_service_page.dart';
 import 'package:doitmoney_flutter/features/transaction/screens/pdf_parsing_page.dart';
 import 'package:doitmoney_flutter/features/transaction/screens/upload_complete_page.dart';
 import 'package:doitmoney_flutter/features/transaction/screens/xlsx_parsing_page.dart';
@@ -92,8 +96,24 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
 
       // ── 기타 독립 화면 ──
-      GoRoute(path: '/more', builder: (_, __) => const MorePage()),
-      GoRoute(path: '/sms-alert', builder: (_, __) => const SmsAlertPage()),
+      GoRoute(path: '/more', builder: (c, s) => const MorePage()),
+      GoRoute(
+        path: '/profile-edit',
+        builder: (c, s) => const ProfileEditPage(),
+      ),
+      GoRoute(path: '/sms-alert', builder: (c, s) => const SmsAlertPage()),
+      GoRoute(
+        path: '/customer-service',
+        builder: (c, s) => const CustomerServicePage(),
+      ),
+      GoRoute(
+        path: '/terms-of-service',
+        builder: (c, s) => const TermsOfServicePage(),
+      ),
+      GoRoute(
+        path: '/privacy-policy',
+        builder: (c, s) => const PrivacyPolicyPage(),
+      ),
       GoRoute(path: '/add-account', builder: (_, __) => const AddAccountPage()),
       GoRoute(
         path: '/transaction/add',

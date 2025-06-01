@@ -1,5 +1,7 @@
 // lib/features/auth/services/auth_service.dart
 
+import 'dart:io';
+
 import 'package:dio/dio.dart';
 import '../../../core/api/dio_client.dart';
 import '../../../core/services/secure_storage_service.dart';
@@ -193,6 +195,30 @@ class AuthService {
     );
     if (res.statusCode != 200) {
       throw Exception('비밀번호 재설정 실패 (${res.statusCode})');
+    }
+  }
+
+  /// 4) 내 프로필 수정 (username + optional image)
+  static Future<void> updateProfile({
+    required String username,
+    File? imageFile,
+  }) async {
+    FormData formData = FormData.fromMap({
+      'username': username,
+      if (imageFile != null)
+        'image': await MultipartFile.fromFile(
+          imageFile.path,
+          filename: imageFile.path.split('/').last,
+        ),
+    });
+
+    final res = await dio.put(
+      '/user/me',
+      data: formData,
+      options: Options(contentType: 'multipart/form-data'),
+    );
+    if (res.statusCode != 200) {
+      throw Exception('프로필 수정 실패 (${res.statusCode})');
     }
   }
 }
