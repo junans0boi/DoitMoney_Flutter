@@ -22,7 +22,8 @@ Future<void> initDio() async {
       BaseOptions(
         baseUrl: 'http://doitmoney.kro.kr/api',
         connectTimeout: const Duration(seconds: 5),
-        receiveTimeout: const Duration(seconds: 5),
+        // ↳ receiveTimeout을 충분히 크게 늘립니다 (예: 60초)
+        receiveTimeout: const Duration(seconds: 60),
         headers: {'Content-Type': 'application/json'},
         validateStatus: (status) => status != null && status < 500,
       ),
@@ -43,7 +44,7 @@ Future<void> initDio() async {
           return handler.next(options);
         },
         onError: (e, handler) async {
-          // 401 리프레시 로직 등 필요 시 추가
+          // 예: 401 발생 시 리프레시 토큰 로직 등 추가 가능
           return handler.next(e);
         },
       ),

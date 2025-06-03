@@ -13,6 +13,7 @@ import '../services/transaction_service.dart'
     show Transaction, TransactionService, TransactionType;
 import '../../../shared/widgets/common_input.dart';
 import '../../../shared/widgets/common_button.dart';
+import '../utils/category_mapper.dart';
 
 class PdfParsingPage extends StatefulWidget {
   final String path;
@@ -115,33 +116,42 @@ class _PdfParsingPageState extends State<PdfParsingPage> {
 
       final datePart = m.group(1)!; // YYYYMMDD
       final timePart = m.group(2)!; // HH:mm:ss
-      final category = m.group(3)!.trim();
+      // 실제 가맹점명(키워드 검사 대상)은 group(6)에 들어 있습니다.
+      final merchantName = m.group(6)!.trim(); // 예: “씨유(CU) 학익보성점”
       final outStr = m.group(4)!.replaceAll(',', '');
       final inStr = m.group(5)!.replaceAll(',', '');
-      final description = m.group(6)!.trim();
-      final amount =
-          int.parse(outStr) > 0 ? -int.parse(outStr) : int.parse(inStr);
-      final type =
-          int.parse(outStr) > 0
-              ? TransactionType.expense
-              : (int.parse(inStr) > 0
-                  ? TransactionType.income
-                  : TransactionType.transfer);
 
+      // 1) 날짜/시간 → DateTime
       final year = int.parse(datePart.substring(0, 4));
       final month = int.parse(datePart.substring(4, 6));
       final day = int.parse(datePart.substring(6, 8));
       final parts = timePart.split(':').map(int.parse).toList();
       final dt = DateTime(year, month, day, parts[0], parts[1], parts[2]);
 
+      // 2) 금액, 유형(expense/income)
+      final outAmt = int.parse(outStr);
+      final inAmt = int.parse(inStr);
+      final amount = (outAmt > 0) ? -outAmt : inAmt; // 출금이면 음수, 입금이면 양수
+      final type =
+          (outAmt > 0)
+              ? TransactionType.expense
+              : (inAmt > 0 ? TransactionType.income : TransactionType.transfer);
+
+      // 3) ★★★ “rawCategory”를 이용해서 카테고리 매핑 ★★★
+      // (원래 “description”이 아니라 “rawCategory”를 넘겨 줘야 정확히 잡힙니다)
+      final mappedCategory = mapCategory(merchantName);
+      print(
+        '>>> mapCategory 호출: merchant="$merchantName" → mapped="$mappedCategory"',
+      );
+
       list.add(
         Transaction(
           id: 0,
           transactionDate: dt,
           transactionType: type,
-          category: category,
+          category: mappedCategory,
           amount: amount,
-          description: description,
+          description: merchantName, // 또는 필요하다면 “메모” 컬럼을 따로 가져와도 됩니다.
           accountName: '',
           accountNumber: '',
         ),
@@ -276,15 +286,14 @@ class _PdfParsingPageState extends State<PdfParsingPage> {
     final cols = <DataColumn>[
       const DataColumn(label: Text('날짜')),
       const DataColumn(label: Text('유형')),
-      const DataColumn(label: Text('카테고리')),
+      const DataColumn(label: Text('카테고리')), // 키워드 매핑된 카테고리 그대로 보여 줌
       const DataColumn(label: Text('금액')),
       const DataColumn(label: Text('내용')),
     ];
     final rows =
         _txs.map((t) {
-          final d = t.transactionDate;
           final dateStr =
-              '${d.month.toString().padLeft(2, '0')}/${d.day.toString().padLeft(2, '0')}';
+              '${t.transactionDate.month.toString().padLeft(2, '0')}/${t.transactionDate.day.toString().padLeft(2, '0')}';
           final typeStr =
               t.transactionType == TransactionType.income
                   ? '수입'
@@ -296,7 +305,7 @@ class _PdfParsingPageState extends State<PdfParsingPage> {
             cells: [
               DataCell(Text(dateStr)),
               DataCell(Text(typeStr)),
-              DataCell(Text(t.category)),
+              DataCell(Text(t.category)), // mapCategory 로 결정된 값
               DataCell(Text(amt)),
               DataCell(Text(t.description)),
             ],

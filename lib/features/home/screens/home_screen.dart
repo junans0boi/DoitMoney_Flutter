@@ -90,7 +90,13 @@ class HomeScreen extends ConsumerWidget {
                   ),
                 ],
               ),
+              // --------------------------------------------------------------------------------
+              ElevatedButton(
+                onPressed: () => context.push('/advisor'),
+                child: const Text('수입·지출 어드바이저 열기'),
+              ),
 
+              // --------------------------------------------------------------------------------
               const SizedBox(height: 24),
 
               // ─── 정기지출 현황 카드 ───

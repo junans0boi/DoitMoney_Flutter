@@ -12,6 +12,7 @@ import 'package:doitmoney_flutter/features/transaction/services/transaction_serv
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:doitmoney_flutter/features/advisor/screens/chat_screen.dart'; // 추가
 
 import 'features/auth/providers/auth_provider.dart';
 import 'core/utils/router_refresh_notifier.dart';
@@ -73,7 +74,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/change-password',
         builder: (_, __) => const ChangePasswordPage(),
       ),
-
+      GoRoute(path: '/advisor', builder: (_, __) => const ChatScreen()),
       // ── 메인 Shell ──
       ShellRoute(
         builder: (_, __, child) => AppShell(child: child),
@@ -155,6 +156,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           return PdfParsingPage(path: pdfPath);
         },
       ),
+
       GoRoute(
         path: '/upload-complete',
         builder: (ctx, state) {

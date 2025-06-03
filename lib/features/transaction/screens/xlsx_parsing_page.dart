@@ -15,6 +15,7 @@ import '../../../shared/widgets/common_button.dart';
 import '../../../constants/colors.dart';
 import '../../account/services/account_service.dart'
     show Account, AccountService;
+import '../utils/category_mapper.dart';
 
 class XlsxParsingPage extends StatefulWidget {
   final PlatformFile file;
@@ -87,27 +88,46 @@ class _XlsxParsingPageState extends State<XlsxParsingPage> {
   List<Transaction> _toTransactions(List<List<String>> rows) {
     final fmt = DateFormat('yyyy.MM.dd HH:mm:ss');
     final out = <Transaction>[];
+
     for (final r in rows) {
-      if (r.length < 3) continue;
+      if (r.length < 3) continue; // 최소한 셀 세 개는 있어야 함
+
+      // 만약 첫 번째 셀(r[0])이 비어 있으면 실제 데이터는 한 칸씩 뒤에 존재한다.
+      final offset = (r[0].trim().isEmpty && r.length > 5) ? 1 : 0;
+
       try {
-        final dt = fmt.parse(r[0]);
-        final amt = int.parse(r[2].replaceAll(',', ''));
+        final dateString = r[offset + 0]; // 거래일시
+        final typeString = r[offset + 1]; // '입금' or '출금'
+        final amtString = r[offset + 2]; // 거래금액 (쉼표 포함)
+        final description = (r.length > offset + 5) ? r[offset + 5] : '';
+
+        final dt = fmt.parse(dateString);
+        final amt = int.parse(amtString.replaceAll(',', ''));
         final type =
-            r[1] == '출금' ? TransactionType.expense : TransactionType.income;
+            (typeString == '출금')
+                ? TransactionType.expense
+                : TransactionType.income;
+
+        // description 또는 rawCategory가 필요하다면, 여기서 description을 사용하거나 mapCategory(description)
+        final mappedCategory = mapCategory(description);
+
         out.add(
           Transaction(
             id: 0,
             transactionDate: dt,
             transactionType: type,
-            category: '',
-            amount: type == TransactionType.expense ? -amt : amt,
-            description: r.length > 5 ? r[5] : '',
+            category: mappedCategory,
+            amount: (type == TransactionType.expense) ? -amt : amt,
+            description: description,
             accountName: '',
             accountNumber: '',
           ),
         );
-      } catch (_) {}
+      } catch (_) {
+        // 파싱 오류가 나는 행은 무시
+      }
     }
+
     return out;
   }
 
@@ -221,22 +241,27 @@ class _XlsxParsingPageState extends State<XlsxParsingPage> {
   Widget _buildPreviewTable() {
     if (_txs.isEmpty) return const Center(child: Text('파싱된 거래 없음'));
 
+    // ① 컬럼 목록에 '카테고리' 추가
     final hdrs = const [
       DataColumn(label: Text('날짜')),
       DataColumn(label: Text('유형')),
+      DataColumn(label: Text('카테고리')), // 추가된 부분
       DataColumn(label: Text('금액')),
       DataColumn(label: Text('내용')),
     ];
+
     final rows =
         _txs.map((t) {
           final date = DateFormat('MM/dd').format(t.transactionDate);
           final type =
               t.transactionType == TransactionType.income ? '수입' : '지출';
           final amt = NumberFormat('#,###').format(t.amount.abs());
+
           return DataRow(
             cells: [
               DataCell(Text(date)),
               DataCell(Text(type)),
+              DataCell(Text(t.category)), // 카테고리 셀 추가
               DataCell(Text('$amt원')),
               DataCell(Text(t.description)),
             ],

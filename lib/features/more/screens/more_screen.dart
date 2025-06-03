@@ -210,17 +210,6 @@ class MorePage extends ConsumerWidget {
             ),
           ),
 
-          /* ── 다크 모드 토글 ───────────────────────── */
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            title: const Text('다크 모드'),
-            value: isDarkMode,
-            onChanged: (v) {
-              ref.read(darkModeProvider.notifier).state = v;
-            },
-            activeTrackColor: kPrimaryColor,
-          ),
-
           const SizedBox(height: 16),
 
           /* ── 고객센터 / 정책 링크 ───────────────────── */

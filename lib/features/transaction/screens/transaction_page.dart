@@ -497,28 +497,34 @@ class CalendarTab extends ConsumerStatefulWidget {
 }
 
 class _CalendarTabState extends ConsumerState<CalendarTab> {
-  DateTime _focused = DateTime.now();
   DateTime? _selected;
 
   DateTime _normalize(DateTime d) => DateTime(d.year, d.month, d.day);
 
   @override
   Widget build(BuildContext context) {
+    // 1) 상단에서 선택된 month를 가져옴
+    final month = ref.watch(selectedMonthProvider);
+    // monthYear를 기준으로 한 달의 첫날·마지막날 계산
+    final firstDayOfMonth = DateTime(month.year, month.month, 1);
+    final lastDayOfMonth = DateTime(month.year, month.month + 1, 0);
+
+    // 2) 필터된 거래 목록 가져오기
     final txs = ref.watch(filteredTransactionsProvider);
 
-    // 1) 날짜별로 거래 맵핑
+    // 3) 거래를 날짜별로 매핑
     final Map<DateTime, List<Transaction>> events = {};
     for (var t in txs) {
       final day = _normalize(t.transactionDate);
       events.putIfAbsent(day, () => []).add(t);
     }
 
-    // 2) 선택된 날짜 이벤트 (없으면 빈 리스트)
+    // 4) 선택된 날짜에 해당하는 이벤트 추출
     final selectedDay = _selected != null ? _normalize(_selected!) : null;
     final dayEvents =
         selectedDay != null ? (events[selectedDay] ?? []) : <Transaction>[];
 
-    // 3) 해당 날짜의 수입/지출 합계
+    // 5) 선택된 날짜의 수입/지출 합계
     final sumIn = sumPositiveAmounts<Transaction>(dayEvents, (t) => t.amount);
     final sumOut = sumNegativeAbsAmounts<Transaction>(
       dayEvents,
@@ -527,11 +533,13 @@ class _CalendarTabState extends ConsumerState<CalendarTab> {
 
     return Column(
       children: [
-        // 캘린더 위젯
+        // ────────────────────── 달력 ──────────────────────
         TableCalendar<Transaction>(
-          firstDay: DateTime(2000),
-          lastDay: DateTime(2100),
-          focusedDay: _focused,
+          // 첫날과 마지막날을 선택된 month 기준으로 설정
+          firstDay: firstDayOfMonth,
+          lastDay: lastDayOfMonth,
+          // focusedDay도 selectedMonthProvider로 바꿔줌
+          focusedDay: month,
           selectedDayPredicate: (d) => _normalize(d) == selectedDay,
           eventLoader: (d) => events[_normalize(d)] ?? [],
           headerVisible: false,
@@ -605,10 +613,10 @@ class _CalendarTabState extends ConsumerState<CalendarTab> {
           onDaySelected:
               (day, focus) => setState(() {
                 _selected = day;
-                _focused = focus;
               }),
         ),
 
+        // ─────────── 선택된 날짜가 있으면 하단 영역 표시 ───────────
         if (selectedDay != null) ...[
           const SizedBox(height: 8),
           Padding(
