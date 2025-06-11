@@ -36,7 +36,7 @@ import 'features/transaction/screens/add_transaction_page.dart';
 import 'features/more/screens/more_screen.dart';
 import 'features/more/screens/sms_alert_page.dart';
 import 'features/transaction/screens/transaction_detail_page.dart';
-import 'features/transaction/screens/upload_transactions_page.dart.dart';
+import 'features/transaction/screens/upload_transactions_page.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final loggedIn = ref.watch(authProvider);

@@ -1,4 +1,3 @@
-// /Users/junzzang_m1/Documents/GitHub/DoitMoney_Flutter/lib/providers/transaction_providers.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -23,7 +22,7 @@ final allTransactionsProvider = FutureProvider.autoDispose<List<Transaction>>(
 );
 
 /// 필터된 거래 리스트
-final filteredTransactionsProvider = Provider<List<Transaction>>((ref) {
+final dateFilteredTransactionsProvider = Provider<List<Transaction>>((ref) {
   final all = ref
       .watch(allTransactionsProvider)
       .maybeWhen(data: (list) => list, orElse: () => <Transaction>[]);
@@ -45,6 +44,23 @@ final filteredTransactionsProvider = Provider<List<Transaction>>((ref) {
           t.transactionDate.year == month.year &&
           t.transactionDate.month == month.month;
     }
+  }).toList();
+});
+
+/// 1) 검색어 상태
+final searchQueryProvider = StateProvider<String>((_) => '');
+
+/// 2) 날짜·계좌 필터 후, 검색어까지 적용한 최종 필터된 거래 리스트
+final filteredTransactionsProvider = Provider<List<Transaction>>((ref) {
+  final byDate = ref.watch(dateFilteredTransactionsProvider);
+  final query = ref.watch(searchQueryProvider).toLowerCase().trim();
+
+  if (query.isEmpty) return byDate;
+
+  return byDate.where((tx) {
+    return tx.description.toLowerCase().contains(query) ||
+        tx.category.toLowerCase().contains(query) ||
+        tx.amount.toString().contains(query);
   }).toList();
 });
 

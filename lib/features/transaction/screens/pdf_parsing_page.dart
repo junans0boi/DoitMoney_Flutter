@@ -1,20 +1,13 @@
-// lib/features/transaction/screens/pdf_parsing_page.dart (리팩터 후)
-
-// ignore_for_file: unused_import, use_super_parameters, use_build_context_synchronously
-
+// lib/features/transaction/screens/pdf_parsing_page.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_pdf_text/flutter_pdf_text.dart';
-import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
-import '../../../shared/widgets/loading_progress_dialog.dart';
 import '../../account/services/account_service.dart'
     show Account, AccountService;
 import '../services/transaction_service.dart'
     show Transaction, TransactionService, TransactionType;
-import '../../../shared/widgets/common_input.dart';
-import '../../../shared/widgets/common_button.dart';
 import '../utils/category_mapper.dart';
-import 'upload_complete_page.dart';
+import '../../../shared/widgets/loading_progress_dialog.dart';
 
 class PdfParsingPage extends StatefulWidget {
   final String path;
@@ -25,47 +18,152 @@ class PdfParsingPage extends StatefulWidget {
 }
 
 class _PdfParsingPageState extends State<PdfParsingPage> {
-  List<Transaction> _existingTxs = []; // ① 서버에 있는 기존 거래
-  final TextEditingController _pwController = TextEditingController();
-  bool _loading = true;
-  String _raw = '';
-  List<Transaction> _txs = [];
-  List<Account> _accounts = [];
+  late List<Account> _accounts;
+  late List<Transaction> _existingTxs;
+  late List<Transaction> _txs;
   Account? _selectedAccount;
 
   @override
   void initState() {
     super.initState();
-    _init();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _startProcess());
   }
 
-  Future<void> _init() async {
+  Future<void> _startProcess() async {
+    // 1) 초기 데이터 로드
     _accounts = await AccountService.fetchAccounts();
-    _existingTxs = await TransactionService.fetchTransactions(); // ①
-    await _parseFile();
-  }
+    _existingTxs = await TransactionService.fetchTransactions();
 
-  Future<void> _parseFile() async {
+    // 2) PDF 텍스트 로드 (비밀번호 다이얼로그)
+    String raw;
     try {
-      final text = await _loadPdfText(widget.path);
-      final list = _extractTransactions(text);
-      setState(() {
-        _raw = text;
-        _txs = list;
-      });
+      raw = await _loadPdfText(widget.path);
     } catch (e) {
-      setState(() => _raw = 'ERROR: $e');
-    } finally {
-      setState(() => _loading = false);
+      await showDialog(
+        context: context,
+        builder:
+            (_) => AlertDialog(
+              title: const Text('오류'),
+              content: Text(e.toString()),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('확인'),
+                ),
+              ],
+            ),
+      );
+      context.go('/ledger');
+      return;
     }
+
+    // 3) 거래 파싱
+    _txs = _extractTransactions(raw);
+
+    // 4) 계좌 자동 선택
+    _autoSelectAccount(raw);
+
+    // 5) 계좌 미선택 시 다이얼로그로 선택
+    if (_selectedAccount == null) {
+      final Account? chosen = await showDialog<Account>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) {
+          Account? temp;
+          return AlertDialog(
+            title: const Text('계좌를 선택해주세요'),
+            content: DropdownButtonFormField<Account>(
+              items:
+                  _accounts.map((a) {
+                    final last4 =
+                        a.accountNumber.length >= 4
+                            ? a.accountNumber.substring(
+                              a.accountNumber.length - 4,
+                            )
+                            : a.accountNumber;
+                    return DropdownMenuItem(
+                      value: a,
+                      child: Text('${a.institutionName} (…$last4)'),
+                    );
+                  }).toList(),
+              onChanged: (v) => temp = v,
+              hint: const Text('계좌 선택'),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, null),
+                child: const Text('취소'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, temp),
+                child: const Text('확인'),
+              ),
+            ],
+          );
+        },
+      );
+      if (chosen == null) {
+        context.go('/ledger');
+        return;
+      }
+      _selectedAccount = chosen;
+    }
+
+    // 6) 중복 제거 및 준비
+    final toUpload = <Transaction>[];
+    for (final t in _txs) {
+      final isDup = _existingTxs.any((e) {
+        final sameDate =
+            e.transactionDate.year == t.transactionDate.year &&
+            e.transactionDate.month == t.transactionDate.month &&
+            e.transactionDate.day == t.transactionDate.day;
+        return sameDate &&
+            e.amount == t.amount &&
+            e.description == t.description &&
+            e.category == t.category;
+      });
+      if (!isDup) toUpload.add(t);
+    }
+    final dupCount = _txs.length - toUpload.length;
+
+    // 7) 로딩 다이얼로그 & 업로드
+    final progress = ValueNotifier<double>(0);
+    LoadingProgressDialog.show(
+      context,
+      title: '파일의 거래내역을 등록하고 있어요!',
+      progress: progress,
+    );
+    for (var i = 0; i < toUpload.length; i++) {
+      final tx = toUpload[i].copyWith(
+        accountName: _selectedAccount!.institutionName,
+        accountNumber: _selectedAccount!.accountNumber,
+      );
+      try {
+        await TransactionService.addTransaction(tx);
+      } catch (_) {}
+      progress.value = (i + 1) / toUpload.length;
+    }
+    Navigator.of(context, rootNavigator: true).pop();
+    progress.dispose();
+
+    // 8) 완료 페이지 이동
+    context.go(
+      '/upload-complete',
+      extra: {
+        'account': _selectedAccount!,
+        'uploadedCount': toUpload.length,
+        'duplicateCount': dupCount,
+      },
+    );
   }
 
   Future<String> _loadPdfText(String path) async {
     String? pwd;
+    final controller = TextEditingController();
     while (true) {
       try {
         final doc =
-            (pwd == null)
+            pwd == null
                 ? await PDFDoc.fromPath(path)
                 : await PDFDoc.fromPath(path, password: pwd);
         return doc.text;
@@ -75,20 +173,20 @@ class _PdfParsingPageState extends State<PdfParsingPage> {
           final input = await showDialog<String>(
             context: context,
             builder:
-                (c) => AlertDialog(
+                (_) => AlertDialog(
                   title: const Text('PDF 비밀번호'),
                   content: TextField(
-                    controller: _pwController,
+                    controller: controller,
                     decoration: const InputDecoration(hintText: '비밀번호 입력'),
                     obscureText: true,
                   ),
                   actions: [
                     TextButton(
-                      onPressed: () => Navigator.pop(c, null),
+                      onPressed: () => Navigator.pop(context, null),
                       child: const Text('취소'),
                     ),
                     TextButton(
-                      onPressed: () => Navigator.pop(c, _pwController.text),
+                      onPressed: () => Navigator.pop(context, controller.text),
                       child: const Text('확인'),
                     ),
                   ],
@@ -164,178 +262,21 @@ class _PdfParsingPageState extends State<PdfParsingPage> {
     return list;
   }
 
-  Future<void> _processUpload() async {
-    if (_txs.isEmpty || _selectedAccount == null) return;
-
-    // ② 중복 검사: 같은 날짜·금액·내용 조합으로 단순 비교
-    final toUpload = <Transaction>[];
-    for (final t in _txs) {
-      final isDup = _existingTxs.any((e) {
-        // ① 날짜만 비교 (DB엔 LocalDate 저장)
-        final sameDate =
-            e.transactionDate.year == t.transactionDate.year &&
-            e.transactionDate.month == t.transactionDate.month &&
-            e.transactionDate.day == t.transactionDate.day;
-        // ② 금액·설명·카테고리 일치 여부
-        return sameDate &&
-            e.amount == t.amount &&
-            e.description == t.description &&
-            e.category == t.category;
-      });
-
-      if (!isDup) toUpload.add(t);
-    }
-    final dupCount = _txs.length - toUpload.length;
-
-    if (toUpload.isNotEmpty) {
-      final progress = ValueNotifier<double>(0);
-      LoadingProgressDialog.show(
-        context,
-        title:
-            '거래 내역을 ${_selectedAccount!.institutionName}…${_selectedAccount!.accountNumber.substring(_selectedAccount!.accountNumber.length - 4)} 계좌로 업로드 중',
-        progress: progress,
-      );
-      for (var i = 0; i < toUpload.length; i++) {
-        final t = toUpload[i].copyWith(
-          accountName: _selectedAccount!.institutionName,
-          accountNumber: _selectedAccount!.accountNumber,
-        );
-        await TransactionService.addTransaction(t).catchError((_) {});
-        progress.value = (i + 1) / toUpload.length;
-      }
-      Navigator.of(context, rootNavigator: true).pop();
-      progress.dispose();
-    }
-
-    // ③ 업로드 완료 페이지로: 성공 개수와 중복 개수 전달
-    if (!mounted) return;
-    context.go(
-      '/upload-complete',
-      extra: {
-        'account': _selectedAccount!,
-        'uploadedCount': toUpload.length,
-        'duplicateCount': dupCount,
-      },
+  void _autoSelectAccount(String raw) {
+    final m = RegExp(r'계좌번호.*?([0-9\-]+)').firstMatch(raw);
+    if (m == null) return;
+    final num = m.group(1)!.replaceAll('-', '');
+    final idx = _accounts.indexWhere(
+      (a) => a.accountNumber.replaceAll('-', '').endsWith(num),
     );
+    if (idx != -1) _selectedAccount = _accounts[idx];
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Scaffold(
-      appBar: AppBar(title: const Text('PDF 파싱 결과')),
-      body: Stack(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // 계좌 선택 드롭다운
-                DropdownButtonFormField<Account>(
-                  decoration: const InputDecoration(labelText: '계좌 선택'),
-                  items:
-                      _accounts.map((a) {
-                        final last4 =
-                            a.accountNumber.length >= 4
-                                ? a.accountNumber.substring(
-                                  a.accountNumber.length - 4,
-                                )
-                                : a.accountNumber;
-                        return DropdownMenuItem(
-                          value: a,
-                          child: Text('${a.institutionName} (…$last4)'),
-                        );
-                      }).toList(),
-                  value: _selectedAccount,
-                  hint: const Text('계좌 선택'),
-                  onChanged: (v) => setState(() => _selectedAccount = v),
-                ),
-                const SizedBox(height: 16),
-                Expanded(
-                  child: DefaultTabController(
-                    length: 2,
-                    child: Column(
-                      children: [
-                        TabBar(
-                          labelColor: theme.primaryColor,
-                          tabs: const [Tab(text: '원본'), Tab(text: '미리보기')],
-                        ),
-                        Expanded(
-                          child: TabBarView(
-                            children: [
-                              SingleChildScrollView(
-                                child: Text(
-                                  _raw,
-                                  style: const TextStyle(
-                                    fontFamily: 'monospace',
-                                  ),
-                                ),
-                              ),
-                              _buildDataTable(),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                CommonElevatedButton(
-                  text: '등록',
-                  enabled: (_txs.isNotEmpty && _selectedAccount != null),
-                  onPressed: _processUpload,
-                ),
-              ],
-            ),
-          ),
-          if (_loading)
-            Container(
-              color: Colors.black38,
-              child: const Center(child: CircularProgressIndicator()),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDataTable() {
-    if (_txs.isEmpty) return const Center(child: Text('파싱된 거래가 없습니다'));
-    final cols = <DataColumn>[
-      const DataColumn(label: Text('날짜')),
-      const DataColumn(label: Text('유형')),
-      const DataColumn(label: Text('카테고리')), // 키워드 매핑된 카테고리 그대로 보여 줌
-      const DataColumn(label: Text('금액')),
-      const DataColumn(label: Text('내용')),
-    ];
-    final rows =
-        _txs.map((t) {
-          final dateStr =
-              '${t.transactionDate.month.toString().padLeft(2, '0')}/${t.transactionDate.day.toString().padLeft(2, '0')}';
-          final typeStr =
-              t.transactionType == TransactionType.income
-                  ? '수입'
-                  : t.transactionType == TransactionType.expense
-                  ? '지출'
-                  : '이체';
-          final amt = NumberFormat('#,###').format(t.amount.abs());
-          return DataRow(
-            cells: [
-              DataCell(Text(dateStr)),
-              DataCell(Text(typeStr)),
-              DataCell(Text(t.category)), // mapCategory 로 결정된 값
-              DataCell(Text(amt)),
-              DataCell(Text(t.description)),
-            ],
-          );
-        }).toList();
-
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: SingleChildScrollView(
-        scrollDirection: Axis.vertical,
-        child: DataTable(columns: cols, rows: rows),
-      ),
+      appBar: AppBar(title: const Text('PDF 파싱 중...')),
+      body: const SizedBox.shrink(),
     );
   }
 }

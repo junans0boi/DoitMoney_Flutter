@@ -2,25 +2,27 @@
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../shared/widgets/common_button.dart';
 import '../../../constants/styles.dart';
 import 'package:doitmoney_flutter/features/account/services/account_service.dart'
     show Account;
+import '../providers/transaction_provider.dart';
 
-class UploadCompletePage extends StatelessWidget {
+class UploadCompletePage extends ConsumerWidget {
   final Account account;
   final int uploadedCount;
   final int duplicateCount;
 
   const UploadCompletePage({
-    Key? key,
+    super.key,
     required this.account,
     required this.uploadedCount,
     required this.duplicateCount,
-  }) : super(key: key);
+  });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final last4 =
         account.accountNumber.length >= 4
             ? account.accountNumber.substring(account.accountNumber.length - 4)
@@ -95,7 +97,11 @@ class UploadCompletePage extends StatelessWidget {
               padding: const EdgeInsets.all(16),
               child: CommonElevatedButton(
                 text: '확인',
-                onPressed: () => context.go('/ledger'),
+                onPressed: () {
+                  // 새로고침 타임스탬프 갱신
+                  ref.read(lastRefreshProvider.notifier).state = DateTime.now();
+                  context.go('/ledger');
+                },
               ),
             ),
           ],

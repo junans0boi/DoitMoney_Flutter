@@ -34,7 +34,7 @@ class TransactionPage extends ConsumerWidget {
           backgroundColor: kBackground,
           elevation: 0,
           bottom: const PreferredSize(
-            preferredSize: Size.fromHeight(180),
+            preferredSize: Size.fromHeight(215),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -117,6 +117,24 @@ class _Header extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // ─── 검색바 추가 ───
+          TextField(
+            decoration: InputDecoration(
+              hintText: '거래 검색',
+              prefixIcon: const Icon(Icons.search),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              isDense: true,
+              contentPadding: const EdgeInsets.symmetric(
+                vertical: 8,
+                horizontal: 12,
+              ),
+            ),
+            onChanged: (v) => ref.read(searchQueryProvider.notifier).state = v,
+          ),
+          const SizedBox(height: 12),
+
           Row(
             children: [
               Expanded(
