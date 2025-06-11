@@ -160,10 +160,13 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/upload-complete',
         builder: (ctx, state) {
+          // extra 로 넘겨준 Map<String, dynamic> 에서
+          // 'uploadedCount' 와 'duplicateCount' 를 꺼내줍니다
           final args = state.extra as Map<String, dynamic>;
           return UploadCompletePage(
             account: args['account'] as Account,
-            count: args['count'] as int,
+            uploadedCount: args['uploadedCount'] as int,
+            duplicateCount: args['duplicateCount'] as int,
           );
         },
       ),

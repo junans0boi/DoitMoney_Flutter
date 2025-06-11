@@ -36,6 +36,7 @@ class _ChatScreenState extends State<ChatScreen> {
     try {
       final history = await _advisorService.fetchChatHistory();
       setState(() {
+        // 과거 대화 내역을 _messages에 보관
         for (var item in history) {
           if (item.categoryData != null) {
             _messages.add({
@@ -47,7 +48,8 @@ class _ChatScreenState extends State<ChatScreen> {
             _messages.add({'role': item.role, 'text': item.text});
           }
         }
-        // ❷ 초기 진입 시 추천 질문(세로) 세팅
+        // ❷ 초기 진입 시 추천 질문(세로) 세팅 (항상 뜨도록 하려면, DB에 저장된 마지막 followUps를 가져오거나,
+        //    없으면 기본 3가지(이번 달 지출, 지난 달 비교, 카테고리별 내역)을 넣어줍니다.)
         _suggestedKeys = [
           'thisMonthExpense',
           'compareLastMonth',
@@ -57,6 +59,7 @@ class _ChatScreenState extends State<ChatScreen> {
     } catch (e) {
       debugPrint("챗 이력 로드 실패: $e");
       setState(() {
+        // 실패했어도 기본 추천 질문을 띄워줌
         _suggestedKeys = [
           'thisMonthExpense',
           'compareLastMonth',
@@ -79,6 +82,7 @@ class _ChatScreenState extends State<ChatScreen> {
       } else if (key != null) {
         _messages.add({'role': 'user', 'text': _mapKeyToLabel(key)});
       }
+      // 기존 추천 키를 지우지 않고, “로딩 중”만 표시하기 위해 빈 리스트로 두지 않고 최소화
       _suggestedKeys = [];
       _textController.clear();
     });
@@ -98,11 +102,18 @@ class _ChatScreenState extends State<ChatScreen> {
         } else {
           _messages.add({'role': 'bot', 'text': resp.answer});
         }
+        // ❹ 매 요청마다 followUps가 항상 non-empty이므로, 그대로 _suggestedKeys에 반영
         _suggestedKeys = resp.followUps;
       });
     } catch (e) {
       setState(() {
         _messages.add({'role': 'bot', 'text': '서버 호출 중 오류가 발생했습니다.\n$e'});
+        // 오류가 나도 기본 추천 질문은 유지하도록
+        _suggestedKeys = [
+          'thisMonthExpense',
+          'compareLastMonth',
+          'categoryBreakdown',
+        ];
       });
     } finally {
       setState(() {
@@ -241,7 +252,7 @@ class _ChatScreenState extends State<ChatScreen> {
               child: CircularProgressIndicator(),
             ),
 
-          // ↓↓↓ 추천 질문을 세로 Column으로 노출
+          // 4) 추천 질문을 세로 Column으로 노출 (항상 followUps가 non-empty이므로 여기에 무조건 노출됨)
           if (_suggestedKeys.isNotEmpty)
             Container(
               color: Colors.grey[100],

@@ -14,6 +14,7 @@ import '../services/transaction_service.dart'
 import '../../../shared/widgets/common_input.dart';
 import '../../../shared/widgets/common_button.dart';
 import '../utils/category_mapper.dart';
+import 'upload_complete_page.dart';
 
 class PdfParsingPage extends StatefulWidget {
   final String path;
@@ -24,6 +25,7 @@ class PdfParsingPage extends StatefulWidget {
 }
 
 class _PdfParsingPageState extends State<PdfParsingPage> {
+  List<Transaction> _existingTxs = []; // ① 서버에 있는 기존 거래
   final TextEditingController _pwController = TextEditingController();
   bool _loading = true;
   String _raw = '';
@@ -39,10 +41,11 @@ class _PdfParsingPageState extends State<PdfParsingPage> {
 
   Future<void> _init() async {
     _accounts = await AccountService.fetchAccounts();
-    await _parsePdf();
+    _existingTxs = await TransactionService.fetchTransactions(); // ①
+    await _parseFile();
   }
 
-  Future<void> _parsePdf() async {
+  Future<void> _parseFile() async {
     try {
       final text = await _loadPdfText(widget.path);
       final list = _extractTransactions(text);
@@ -161,43 +164,58 @@ class _PdfParsingPageState extends State<PdfParsingPage> {
     return list;
   }
 
-  Future<void> _upload() async {
+  Future<void> _processUpload() async {
     if (_txs.isEmpty || _selectedAccount == null) return;
-    final total = _txs.length;
-    final progress = ValueNotifier<double>(0);
 
-    LoadingProgressDialog.show(
-      context,
-      title:
-          '거래 내역을 ${_selectedAccount!.institutionName}(${_selectedAccount!.accountNumber.substring(_selectedAccount!.accountNumber.length - 4)}) 계좌로 업로드 하고 있어요!',
-      progress: progress,
-    );
+    // ② 중복 검사: 같은 날짜·금액·내용 조합으로 단순 비교
+    final toUpload = <Transaction>[];
+    for (final t in _txs) {
+      final isDup = _existingTxs.any((e) {
+        // ① 날짜만 비교 (DB엔 LocalDate 저장)
+        final sameDate =
+            e.transactionDate.year == t.transactionDate.year &&
+            e.transactionDate.month == t.transactionDate.month &&
+            e.transactionDate.day == t.transactionDate.day;
+        // ② 금액·설명·카테고리 일치 여부
+        return sameDate &&
+            e.amount == t.amount &&
+            e.description == t.description &&
+            e.category == t.category;
+      });
 
-    for (var i = 0; i < total; i++) {
-      final t = _txs[i];
-      try {
-        await TransactionService.addTransaction(
-          Transaction(
-            id: 0,
-            transactionDate: t.transactionDate,
-            transactionType: t.transactionType,
-            category: t.category,
-            amount: t.amount,
-            description: t.description,
-            accountName: _selectedAccount!.institutionName,
-            accountNumber: _selectedAccount!.accountNumber,
-          ),
+      if (!isDup) toUpload.add(t);
+    }
+    final dupCount = _txs.length - toUpload.length;
+
+    if (toUpload.isNotEmpty) {
+      final progress = ValueNotifier<double>(0);
+      LoadingProgressDialog.show(
+        context,
+        title:
+            '거래 내역을 ${_selectedAccount!.institutionName}…${_selectedAccount!.accountNumber.substring(_selectedAccount!.accountNumber.length - 4)} 계좌로 업로드 중',
+        progress: progress,
+      );
+      for (var i = 0; i < toUpload.length; i++) {
+        final t = toUpload[i].copyWith(
+          accountName: _selectedAccount!.institutionName,
+          accountNumber: _selectedAccount!.accountNumber,
         );
-      } catch (_) {}
-      progress.value = (i + 1) / total;
+        await TransactionService.addTransaction(t).catchError((_) {});
+        progress.value = (i + 1) / toUpload.length;
+      }
+      Navigator.of(context, rootNavigator: true).pop();
+      progress.dispose();
     }
 
-    Navigator.of(context, rootNavigator: true).pop();
-    progress.dispose();
+    // ③ 업로드 완료 페이지로: 성공 개수와 중복 개수 전달
     if (!mounted) return;
     context.go(
       '/upload-complete',
-      extra: {'account': _selectedAccount!, 'count': total},
+      extra: {
+        'account': _selectedAccount!,
+        'uploadedCount': toUpload.length,
+        'duplicateCount': dupCount,
+      },
     );
   }
 
@@ -266,7 +284,7 @@ class _PdfParsingPageState extends State<PdfParsingPage> {
                 CommonElevatedButton(
                   text: '등록',
                   enabled: (_txs.isNotEmpty && _selectedAccount != null),
-                  onPressed: _upload,
+                  onPressed: _processUpload,
                 ),
               ],
             ),

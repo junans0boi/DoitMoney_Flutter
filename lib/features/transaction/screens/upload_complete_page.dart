@@ -1,22 +1,22 @@
-// lib/features/transaction/screens/upload_complete_page.dart (리팩터 후)
+// lib/features/transaction/screens/upload_complete_page.dart
 
-// ignore_for_file: unused_import, use_super_parameters
-
-import 'package:doitmoney_flutter/shared/widgets/common_button.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../../constants/colors.dart';
+import '../../../shared/widgets/common_button.dart';
 import '../../../constants/styles.dart';
-import '../../account/services/account_service.dart' show Account;
+import 'package:doitmoney_flutter/features/account/services/account_service.dart'
+    show Account;
 
 class UploadCompletePage extends StatelessWidget {
   final Account account;
-  final int count;
+  final int uploadedCount;
+  final int duplicateCount;
 
   const UploadCompletePage({
     Key? key,
     required this.account,
-    required this.count,
+    required this.uploadedCount,
+    required this.duplicateCount,
   }) : super(key: key);
 
   @override
@@ -44,10 +44,17 @@ class UploadCompletePage extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             Text(
-              '${account.institutionName}($last4) 계좌로\n거래 등록을 성공했어요!',
+              '${account.institutionName}($last4) 계좌로\n$uploadedCount건 업로드 완료',
               textAlign: TextAlign.center,
               style: kTitleText.copyWith(fontSize: 20),
             ),
+            const SizedBox(height: 8),
+            if (duplicateCount > 0)
+              Text(
+                '$duplicateCount건은 이미 등록되어\n업로드되지 않았습니다.',
+                textAlign: TextAlign.center,
+                style: kBodyText.copyWith(color: Colors.red),
+              ),
             const SizedBox(height: 48),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 32),
@@ -59,7 +66,9 @@ class UploadCompletePage extends StatelessWidget {
                       children: const [
                         Text('입금 계좌', style: kBodyText),
                         SizedBox(height: 4),
-                        Text('등록 건수', style: kBodyText),
+                        Text('성공 등록 건수', style: kBodyText),
+                        SizedBox(height: 4),
+                        Text('중복 건수', style: kBodyText),
                       ],
                     ),
                   ),
@@ -72,7 +81,9 @@ class UploadCompletePage extends StatelessWidget {
                           style: kBodyText,
                         ),
                         const SizedBox(height: 4),
-                        Text('$count개 거래', style: kBodyText),
+                        Text('$uploadedCount 건', style: kBodyText),
+                        const SizedBox(height: 4),
+                        Text('$duplicateCount 건', style: kBodyText),
                       ],
                     ),
                   ),
@@ -84,9 +95,7 @@ class UploadCompletePage extends StatelessWidget {
               padding: const EdgeInsets.all(16),
               child: CommonElevatedButton(
                 text: '확인',
-                onPressed: () {
-                  context.go('/ledger');
-                },
+                onPressed: () => context.go('/ledger'),
               ),
             ),
           ],

@@ -16,6 +16,7 @@ import '../../../constants/colors.dart';
 import '../../account/services/account_service.dart'
     show Account, AccountService;
 import '../utils/category_mapper.dart';
+import '../screens/upload_complete_page.dart';
 
 class XlsxParsingPage extends StatefulWidget {
   final PlatformFile file;
@@ -26,6 +27,8 @@ class XlsxParsingPage extends StatefulWidget {
 }
 
 class _XlsxParsingPageState extends State<XlsxParsingPage> {
+  List<Transaction> _existingTxs = []; // ①
+
   bool _busy = false;
   List<List<String>> _raw = [];
   List<Transaction> _txs = [];
@@ -36,11 +39,16 @@ class _XlsxParsingPageState extends State<XlsxParsingPage> {
   void initState() {
     super.initState();
     _loadAccounts();
+    _loadExisting();
   }
 
   Future<void> _loadAccounts() async {
     _accounts = await AccountService.fetchAccounts();
     setState(() {});
+  }
+
+  Future<void> _loadExisting() async {
+    _existingTxs = await TransactionService.fetchTransactions(); // ①
   }
 
   Future<void> _decryptAndParse() async {
@@ -131,35 +139,54 @@ class _XlsxParsingPageState extends State<XlsxParsingPage> {
     return out;
   }
 
-  Future<void> _upload() async {
+  Future<void> _parseFile() async {
     if (_txs.isEmpty || _selectedAccount == null) return;
-    final total = _txs.length;
-    final progress = ValueNotifier<double>(0);
 
-    LoadingProgressDialog.show(
-      context,
-      title:
-          '거래 내역을 ${_selectedAccount!.institutionName}(${_selectedAccount!.accountNumber.substring(_selectedAccount!.accountNumber.length - 4)}) 계좌로 업로드 하고 있어요!',
-      progress: progress,
-    );
+    // ② 중복 체크
+    final toUpload = <Transaction>[];
+    for (final t in _txs) {
+      final isDup = _existingTxs.any((e) {
+        final sameDate =
+            e.transactionDate.year == t.transactionDate.year &&
+            e.transactionDate.month == t.transactionDate.month &&
+            e.transactionDate.day == t.transactionDate.day;
+        return sameDate &&
+            e.amount == t.amount &&
+            e.description == t.description &&
+            e.category == t.category;
+      });
+      if (!isDup) toUpload.add(t);
+    }
+    final dupCount = _txs.length - toUpload.length;
 
-    for (var i = 0; i < total; i++) {
-      final t = _txs[i].copyWith(
-        accountName: _selectedAccount!.institutionName,
-        accountNumber: _selectedAccount!.accountNumber,
+    if (toUpload.isNotEmpty) {
+      final progress = ValueNotifier<double>(0);
+      LoadingProgressDialog.show(
+        context,
+        title:
+            '거래 내역을 ${_selectedAccount!.institutionName}…${_selectedAccount!.accountNumber.substring(_selectedAccount!.accountNumber.length - 4)} 계좌로 업로드 중',
+        progress: progress,
       );
-      try {
-        await TransactionService.addTransaction(t);
-      } catch (_) {}
-      progress.value = (i + 1) / total;
+      for (var i = 0; i < toUpload.length; i++) {
+        final t = toUpload[i].copyWith(
+          accountName: _selectedAccount!.institutionName,
+          accountNumber: _selectedAccount!.accountNumber,
+        );
+        await TransactionService.addTransaction(t).catchError((_) {});
+        progress.value = (i + 1) / toUpload.length;
+      }
+      Navigator.of(context, rootNavigator: true).pop();
+      progress.dispose();
     }
 
-    Navigator.of(context, rootNavigator: true).pop();
-    progress.dispose();
     if (!mounted) return;
     context.go(
       '/upload-complete',
-      extra: {'account': _selectedAccount!, 'count': total},
+      extra: {
+        'account': _selectedAccount!,
+        'uploadedCount': toUpload.length,
+        'duplicateCount': dupCount,
+      },
     );
   }
 
@@ -229,7 +256,7 @@ class _XlsxParsingPageState extends State<XlsxParsingPage> {
               CommonElevatedButton(
                 text: '등록',
                 enabled: (_txs.isNotEmpty && _selectedAccount != null),
-                onPressed: _upload,
+                onPressed: _parseFile,
               ),
             ],
           ),
