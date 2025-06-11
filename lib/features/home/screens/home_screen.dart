@@ -12,11 +12,18 @@ import '../../../shared/widgets/news_banner.dart';
 import '../../fixed_expense/providers/fixed_expense_provider.dart';
 import '../../transaction/services/transaction_service.dart';
 
-class HomeScreen extends ConsumerWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
+  @override
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends ConsumerState<HomeScreen> {
+  // 시작 위치 (화면 우측 하단)
+  Offset _fabOffset = const Offset(300, 600);
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final month = ref.watch(selectedMonthProvider);
     final txs = ref.watch(filteredTransactionsProvider);
     final fixedAsync = ref.watch(fixedExpensesProvider);
@@ -31,133 +38,160 @@ class HomeScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: kBackground,
-      body: SafeArea(
-        child: RefreshIndicator(
-          // 당겨서 새로고침 시, 거래 목록(provider)을 invalidate만 하면 자동으로 다시 fetch됩니다.
-          onRefresh: () async {
-            ref.invalidate(filteredTransactionsProvider);
-          },
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-            children: [
-              const SizedBox(height: 8),
-
-              // ─── 요약 카드 ───
-              // (int → double) 캐스팅 추가
-              _buildSummaryCard((totalIn + totalOut).toDouble(), txs.length),
-
-              const SizedBox(height: 16),
-
-              // ─── 뉴스 배너 ───
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: NewsBanner(
-                  height: 120,
-                  borderRadius: const BorderRadius.all(Radius.circular(8)),
-                  fontSize: 12,
-                ),
-              ),
-
-              const SizedBox(height: 24),
-
-              // ─── 월 선택 & 리포트 버튼 ───
-              _buildMonthSelector(context, ref, month),
-
-              const SizedBox(height: 24),
-
-              // ─── 요약 카드들 (총 수입 / 총 지출) ───
-              Row(
+      body: Stack(
+        children: [
+          SafeArea(
+            child: RefreshIndicator(
+              onRefresh: () async {
+                ref.invalidate(filteredTransactionsProvider);
+              },
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                 children: [
-                  Expanded(
-                    child: _SummaryCard(
-                      title: '총 수입',
-                      amount: totalIn,
-                      subtitle: '',
-                      // withOpacity 대신 withAlpha 사용
-                      backgroundColor: kPrimaryColor.withAlpha(
-                        (0.6 * 255).round(),
+                  const SizedBox(height: 8),
+
+                  // ─── 요약 카드 ───
+                  // (int → double) 캐스팅 추가
+                  _buildSummaryCard(
+                    (totalIn + totalOut).toDouble(),
+                    txs.length,
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // ─── 뉴스 배너 ───
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: NewsBanner(
+                      height: 120,
+                      borderRadius: const BorderRadius.all(Radius.circular(8)),
+                      fontSize: 12,
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // ─── 월 선택 & 리포트 버튼 ───
+                  _buildMonthSelector(context, ref, month),
+
+                  const SizedBox(height: 24),
+
+                  // ─── 요약 카드들 (총 수입 / 총 지출) ───
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _SummaryCard(
+                          title: '총 수입',
+                          amount: totalIn,
+                          subtitle: '',
+                          // withOpacity 대신 withAlpha 사용
+                          backgroundColor: kPrimaryColor.withAlpha(
+                            (0.6 * 255).round(),
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _SummaryCard(
-                      title: '총 지출',
-                      amount: totalOut,
-                      subtitle: '지난달 ${_formatCurrency(totalOut)}',
-                      backgroundColor: kPrimaryColor,
-                    ),
-                  ),
-                ],
-              ),
-              // --------------------------------------------------------------------------------
-              ElevatedButton(
-                onPressed: () => context.push('/advisor'),
-                child: const Text('수입·지출 어드바이저 열기'),
-              ),
-
-              // --------------------------------------------------------------------------------
-              const SizedBox(height: 24),
-
-              // ─── 정기지출 현황 카드 ───
-              fixedAsync.when(
-                data: (list) {
-                  final today = DateTime.now().day;
-                  final upcoming = list
-                      .where((e) => e.dayOfMonth > today)
-                      .fold<int>(0, (s, e) => s + e.amount);
-                  final completed = list
-                      .where((e) => e.dayOfMonth <= today)
-                      .fold<int>(0, (s, e) => s + e.amount);
-
-                  return _StatusCard(
-                    title: '정기지출',
-                    items: [
-                      _StatusItem(label: '지출 예정', amount: upcoming),
-                      _StatusItem(label: '지출 완료', amount: completed),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _SummaryCard(
+                          title: '총 지출',
+                          amount: totalOut,
+                          subtitle: '지난달 ${_formatCurrency(totalOut)}',
+                          backgroundColor: kPrimaryColor,
+                        ),
+                      ),
                     ],
-                    onTap: () => context.push('/fixed-expense'),
-                  );
-                },
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error:
-                    (e, _) => Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      child: Text(
-                        '오류: $e',
-                        style: const TextStyle(color: Colors.red),
-                      ),
-                    ),
-              ),
-
-              const SizedBox(height: 16),
-
-              // ─── 변동지출 카드 ───
-              _StatusCard(
-                title: '변동지출',
-                items: [
-                  _StatusItem(
-                    label: '지출 예산',
-                    amount: 0,
-                    placeholder: '예산을 계획해보세요',
                   ),
-                  _StatusItem(label: '지출', amount: totalOut),
+                  // --------------------------------------------------------------------------------
+                  const SizedBox(height: 24),
+
+                  // ─── 정기지출 현황 카드 ───
+                  fixedAsync.when(
+                    data: (list) {
+                      final today = DateTime.now().day;
+                      final upcoming = list
+                          .where((e) => e.dayOfMonth > today)
+                          .fold<int>(0, (s, e) => s + e.amount);
+                      final completed = list
+                          .where((e) => e.dayOfMonth <= today)
+                          .fold<int>(0, (s, e) => s + e.amount);
+
+                      return _StatusCard(
+                        title: '정기지출',
+                        items: [
+                          _StatusItem(label: '지출 예정', amount: upcoming),
+                          _StatusItem(label: '지출 완료', amount: completed),
+                        ],
+                        onTap: () => context.push('/fixed-expense'),
+                      );
+                    },
+                    loading:
+                        () => const Center(child: CircularProgressIndicator()),
+                    error:
+                        (e, _) => Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          child: Text(
+                            '오류: $e',
+                            style: const TextStyle(color: Colors.red),
+                          ),
+                        ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // ─── 변동지출 카드 ───
+                  _StatusCard(
+                    title: '변동지출',
+                    items: [
+                      _StatusItem(
+                        label: '지출 예산',
+                        amount: 0,
+                        placeholder: '예산을 계획해보세요',
+                      ),
+                      _StatusItem(label: '지출', amount: totalOut),
+                    ],
+                    trailing: FloatingActionButton(
+                      mini: true,
+                      backgroundColor: kPrimaryColor,
+                      onPressed: () => context.push('/transaction/add'),
+                      child: const Icon(Icons.add, color: Colors.white),
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // ─── 카테고리별 지출 차트 ───
+                  _CategoryChart(txs: txs),
                 ],
-                trailing: FloatingActionButton(
-                  mini: true,
-                  backgroundColor: kPrimaryColor,
-                  onPressed: () => context.push('/transaction/add'),
-                  child: const Icon(Icons.add, color: Colors.white),
+              ),
+            ),
+          ),
+          // 드래그 가능한 채팅 플로팅 버튼
+          // ── 드래그 가능한 채팅 플로팅 버튼 ──
+          Positioned(
+            left: _fabOffset.dx,
+            top: _fabOffset.dy,
+            child: GestureDetector(
+              onPanUpdate:
+                  (details) => setState(() {
+                    _fabOffset += details.delta;
+                  }),
+              child: SizedBox(
+                width: 72, // 원하는 크기로 조정
+                height: 72, // 원하는 크기로 조정
+                child: FloatingActionButton(
+                  onPressed: () => context.push('/advisor'),
+                  backgroundColor: Colors.white,
+                  shape: const CircleBorder(), // 원형 모양 강제 지정
+                  child: const Icon(
+                    Icons.chat_bubble,
+                    size: 32,
+                    color: kPrimaryColor,
+                  ), // 아이콘 크기도 키움
                 ),
               ),
-
-              const SizedBox(height: 24),
-
-              // ─── 카테고리별 지출 차트 ───
-              _CategoryChart(txs: txs),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }

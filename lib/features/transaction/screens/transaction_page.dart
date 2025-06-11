@@ -467,14 +467,42 @@ class WeeklyTab extends ConsumerWidget {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: BarChart(
                 BarChartData(
+                  // 1) 터치 시 툴팁 색상 지정
+                  barTouchData: BarTouchData(
+                    enabled: true,
+                    touchTooltipData: BarTouchTooltipData(
+                      getTooltipColor: (group) => Colors.black.withOpacity(0.7),
+                      getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                        final formatted = NumberFormat(
+                          '#,###',
+                        ).format(rod.toY.toInt());
+                        final color =
+                            (rodIndex == 0)
+                                ? Colors.blue
+                                : Colors.red.withOpacity(0.8);
+                        return BarTooltipItem(
+                          '$formatted원',
+                          TextStyle(color: color, fontWeight: FontWeight.bold),
+                        );
+                      },
+                    ),
+                  ),
                   barGroups:
                       weeks.asMap().entries.map((e) {
                         final w = e.value;
                         return BarChartGroupData(
                           x: e.key,
                           barRods: [
-                            BarChartRodData(toY: (w['in'] as int).toDouble()),
-                            BarChartRodData(toY: (w['out'] as int).toDouble()),
+                            BarChartRodData(
+                              toY: (w['in'] as int).toDouble(),
+                              color: kPrimaryColor,
+                              width: 16,
+                            ),
+                            BarChartRodData(
+                              toY: (w['out'] as int).toDouble(),
+                              color: Colors.red.withOpacity(0.8),
+                              width: 16,
+                            ),
                           ],
                         );
                       }).toList(),
