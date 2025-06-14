@@ -2,6 +2,7 @@
 import 'package:doitmoney_flutter/features/auth/screens/profile_edit_page.dart';
 import 'package:doitmoney_flutter/features/fixed_expense/screens/fixed_expense_list_page.dart';
 import 'package:doitmoney_flutter/features/more/screens/customer_service_page.dart';
+import 'package:doitmoney_flutter/features/more/screens/notification_alert_page.dart';
 import 'package:doitmoney_flutter/features/more/screens/privacy_policy_page.dart';
 import 'package:doitmoney_flutter/features/more/screens/terms_of_service_page.dart';
 import 'package:doitmoney_flutter/features/transaction/screens/pdf_parsing_page.dart';
@@ -37,6 +38,7 @@ import 'features/more/screens/more_screen.dart';
 import 'features/more/screens/sms_alert_page.dart';
 import 'features/transaction/screens/transaction_detail_page.dart';
 import 'features/transaction/screens/upload_transactions_page.dart';
+import 'main.dart' show navigatorKey; // 전역에 선언된 키 import
 
 final routerProvider = Provider<GoRouter>((ref) {
   final loggedIn = ref.watch(authProvider);
@@ -44,6 +46,7 @@ final routerProvider = Provider<GoRouter>((ref) {
 
   return GoRouter(
     debugLogDiagnostics: true,
+    navigatorKey: navigatorKey, // ← 여기에 추가
     initialLocation: '/',
     refreshListenable: GoRouterRefreshStream(authStream),
     redirect: (_, state) {
@@ -99,10 +102,17 @@ final routerProvider = Provider<GoRouter>((ref) {
       // ── 기타 독립 화면 ──
       GoRoute(path: '/more', builder: (c, s) => const MorePage()),
       GoRoute(
+        path: '/notification_alert',
+        builder: (context, state) => const NotificationAlertPage(),
+      ),
+      GoRoute(
+        path: '/sms_alert',
+        builder: (context, state) => const SmsAlertPage(),
+      ),
+      GoRoute(
         path: '/profile-edit',
         builder: (c, s) => const ProfileEditPage(),
       ),
-      GoRoute(path: '/sms-alert', builder: (c, s) => const SmsAlertPage()),
       GoRoute(
         path: '/customer-service',
         builder: (c, s) => const CustomerServicePage(),

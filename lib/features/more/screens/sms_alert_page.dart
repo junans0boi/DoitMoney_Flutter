@@ -6,7 +6,7 @@ import '../services/sms_parser_service.dart';
 import '../../../constants/colors.dart';
 
 class SmsAlertPage extends StatefulWidget {
-  const SmsAlertPage({super.key});
+  const SmsAlertPage({Key? key}) : super(key: key);
 
   @override
   State<SmsAlertPage> createState() => _SmsAlertPageState();
@@ -25,6 +25,9 @@ class _SmsAlertPageState extends State<SmsAlertPage> {
         setState(() {
           _enabled = value == 'true';
         });
+        if (_enabled) {
+          _smsService.init();
+        }
       }
     });
   }
@@ -33,7 +36,18 @@ class _SmsAlertPageState extends State<SmsAlertPage> {
     setState(() => _enabled = value);
     await _secure.write('sms_alert_enabled', value.toString());
     if (value) {
-      await _smsService.init(); // 켜질 때 초기화
+      await _smsService.init();
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('SMS 알림이 활성화되었습니다.')));
+      }
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('SMS 알림이 비활성화되었습니다.')));
+      }
     }
   }
 
@@ -43,7 +57,7 @@ class _SmsAlertPageState extends State<SmsAlertPage> {
       appBar: AppBar(title: const Text('문자 알림 서비스')),
       body: Center(
         child: SwitchListTile(
-          title: const Text('문자 알림 받기'),
+          title: const Text('SMS 알림 받기'),
           value: _enabled,
           activeColor: kPrimaryColor,
           onChanged: _toggle,

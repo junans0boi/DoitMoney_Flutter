@@ -5,10 +5,12 @@
     <uses-permission android:name="android.permission.RECEIVE_SMS" />
     <uses-permission android:name="android.permission.READ_SMS" />
     <uses-permission android:name="android.permission.SEND_SMS" />
+    <!-- 알림 접근 권한 -->
+    <uses-permission android:name="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-    
+
     <application
         android:name="${applicationName}"
         android:label="DoitMoney"
@@ -31,11 +33,11 @@
             </intent-filter>
         </activity>
 
-       
+
         <!-- ML Kit OCR 모듈 로드 -->
-        <meta-data
+        <!-- <meta-data
             android:name="com.google.mlkit.vision.DEPENDENCIES"
-            android:value="ocr" />
+            android:value="ocr" /> -->
 
         <!-- Flutter 플러그인 등록용 -->
         <meta-data android:name="flutterEmbedding" android:value="2" />
@@ -50,6 +52,17 @@
             </intent-filter>
         </receiver> -->
 
+
+        <!-- NotificationListenerService 등록 -->
+        <service
+            android:name=".MyNotificationListener"
+            android:exported="true"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
+            android:foregroundServiceType="dataSync|connectedDevice">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
         <!-- FCM service -->
         <service
             android:name="com.google.firebase.messaging.FirebaseMessagingService"

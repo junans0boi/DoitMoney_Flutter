@@ -1,6 +1,7 @@
 import 'package:doitmoney_flutter/features/auth/providers/auth_provider.dart';
 import 'package:doitmoney_flutter/features/auth/providers/user_provider.dart';
 import 'package:doitmoney_flutter/features/more/providers/more_providers.dart';
+import 'package:doitmoney_flutter/shared/widgets/common_list_item.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -205,11 +206,16 @@ class MorePage extends ConsumerWidget {
                   decoration: TextDecoration.underline,
                 ),
               ),
-              onPressed: () => context.push('/sms-alert'),
+              onPressed: () => context.push('/sms_alert'),
               child: const Text('문자 알림 서비스'),
             ),
           ),
-
+          //  알림 서비스 진입 버튼
+          CommonListItem(
+            label: '알림 수신 서비스',
+            showArrow: true,
+            onTap: () => context.push('/notification_alert'),
+          ),
           const SizedBox(height: 16),
 
           /* ── 고객센터 / 정책 링크 ───────────────────── */
