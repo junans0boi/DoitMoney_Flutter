@@ -36,23 +36,15 @@ class ParsedNotification {
   }
 }
 
-/// 알림(Notification) 메시지를 파싱해서 [ParsedNotification]을 반환합니다.
-/// 지원하는 양식에 새로운 카카오뱅크 입금 패턴 추가
-ParsedNotification? parseNotificationMessage(
-  String fullText,
-  String packageName,
-) {
+/// SMS 메시지를 파싱해서 [ParsedNotification]을 반환합니다.
+ParsedNotification? parseSmsMessage(String smsBody) {
   final now = DateTime.now();
 
-  // 1) 카카오뱅크 입금 알림
-  //    예시:
-  //    카카오뱅크
-  //    입금 3,500원
-  //    김신혁 → 내 입출금통장(2856)
+  // 1) 카카오뱅크 입금 알림 예시: "입금 3,500원 김신혁 → 내 입출금통장(2856)"
   final kakaoExp = RegExp(
-    r'입금\s*([\d,]+)원\s*(?:\r?\n)\s*(.+?)\s*→\s*내 입출금통장\((\d+)\)',
+    r'입금\s*([\d,]+)원[\s\n]+(.+?)\s*→\s*내\s*입출금통장\((\d+)\)',
   );
-  final kakaoMatch = kakaoExp.firstMatch(fullText);
+  final kakaoMatch = kakaoExp.firstMatch(smsBody);
   if (kakaoMatch != null) {
     final amtStr = kakaoMatch.group(1)!.replaceAll(',', '');
     final fromName = kakaoMatch.group(2)!.trim();
@@ -67,11 +59,11 @@ ParsedNotification? parseNotificationMessage(
     );
   }
 
-  // 2) 기존 패턴: 우리카드 승인내역
+  // 2) 우리카드 승인내역 예시
   final wcCardExp = RegExp(
     r'\[일시불체크\.승인\(\d+\)\]\s*(\d{2})/(\d{2})\s+(\d{1,2}):(\d{2})\s+([\d,]+)원\s+(.+)',
   );
-  final wcMatch = wcCardExp.firstMatch(fullText);
+  final wcMatch = wcCardExp.firstMatch(smsBody);
   if (wcMatch != null) {
     final month = int.parse(wcMatch.group(1)!);
     final day = int.parse(wcMatch.group(2)!);
@@ -89,11 +81,11 @@ ParsedNotification? parseNotificationMessage(
     );
   }
 
-  // 3) 기존 패턴: 우리WON뱅킹 출금
+  // 3) 우리WON뱅킹 출금 예시
   final wbBankExp = RegExp(
     r'\[출금\]\s*(.+?)\s+([\d,]+)원.*?(\d{2})/(\d{2})\s+(\d{1,2}):(\d{2}):(\d{2})',
   );
-  final wbMatch = wbBankExp.firstMatch(fullText);
+  final wbMatch = wbBankExp.firstMatch(smsBody);
   if (wbMatch != null) {
     final desc = wbMatch.group(1)!.trim();
     final amtStr = wbMatch.group(2)!.replaceAll(',', '');
@@ -112,11 +104,11 @@ ParsedNotification? parseNotificationMessage(
     );
   }
 
-  // 4) 일반 입금/출금
+  // 4) 일반 입금/출금 패턴
   final expWithdraw = RegExp(r'([\d,]+)원\s*(출금|사용|이체)');
   final expDeposit = RegExp(r'([\d,]+)원\s*(입금)');
-  if (expWithdraw.hasMatch(fullText)) {
-    final m = expWithdraw.firstMatch(fullText)!;
+  if (expWithdraw.hasMatch(smsBody)) {
+    final m = expWithdraw.firstMatch(smsBody)!;
     final amt = int.tryParse(m.group(1)!.replaceAll(',', '')) ?? 0;
     return ParsedNotification(
       dateTime: now,
@@ -125,8 +117,8 @@ ParsedNotification? parseNotificationMessage(
       isExpense: true,
     );
   }
-  if (expDeposit.hasMatch(fullText)) {
-    final m = expDeposit.firstMatch(fullText)!;
+  if (expDeposit.hasMatch(smsBody)) {
+    final m = expDeposit.firstMatch(smsBody)!;
     final amt = int.tryParse(m.group(1)!.replaceAll(',', '')) ?? 0;
     return ParsedNotification(
       dateTime: now,

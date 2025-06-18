@@ -148,28 +148,48 @@ class _XlsxParsingPageState extends State<XlsxParsingPage> {
   }
 
   List<Transaction> _toTransactions(List<List<String>> rows) {
-    final fmt = DateFormat('yyyy.MM.dd HH:mm:ss');
     final list = <Transaction>[];
     for (final r in rows) {
       if (r.length < 3) continue;
+
+      // 첫 컬럼이 비어 있으면 offset = 1
       final offset = (r[0].trim().isEmpty && r.length > 5) ? 1 : 0;
       try {
-        final dateString = r[offset + 0];
+        // 1) 날짜 문자열
+        final dateString = r[offset];
+        DateTime dt;
+        // 1-1) 기본 포맷 시도
+        try {
+          dt = DateFormat('yyyy.MM.dd HH:mm:ss').parse(dateString);
+        }
+        // 1-2) 실패 시 ISO 파싱 or 현재 시간
+        catch (_) {
+          dt = DateTime.tryParse(dateString) ?? DateTime.now();
+        }
+
+        // 2) 타입·금액·설명
         final typeString = r[offset + 1].trim();
         final amtString = r[offset + 2];
         final description = r.length > offset + 5 ? r[offset + 5] : '';
-        final dt = fmt.parse(dateString);
+
+        // 3) 숫자 이외 제거 후 파싱
         final val = int.parse(amtString.replaceAll(RegExp(r'[^0-9]'), ''));
+
+        // 4) 수입/지출 판정
         final isExpense = typeString == '출금';
         final amount = isExpense ? -val : val;
-        final type =
+        final txType =
             isExpense ? TransactionType.expense : TransactionType.income;
+
+        // 5) 카테고리 매핑
         final mappedCategory = mapCategory(description);
+
+        // 6) 리스트에 추가
         list.add(
           Transaction(
             id: 0,
             transactionDate: dt,
-            transactionType: type,
+            transactionType: txType,
             category: mappedCategory,
             amount: amount,
             description: description,
@@ -177,7 +197,11 @@ class _XlsxParsingPageState extends State<XlsxParsingPage> {
             accountNumber: '',
           ),
         );
-      } catch (_) {}
+      } catch (e) {
+        // 한 행에서 에러 나도 전체 중단하지 않도록 로깅 후 다음으로
+        debugPrint('XLSX row parse failed: $e');
+        continue;
+      }
     }
     return list;
   }

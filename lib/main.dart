@@ -18,9 +18,9 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
   await initializeDateFormatting('ko');
-  await NotificationService().init();
 
   // ─── SMS, Push 서비스 초기화 ───
+  await NotificationService().init();
   await SmsService().init();
   await PushService().init();
 

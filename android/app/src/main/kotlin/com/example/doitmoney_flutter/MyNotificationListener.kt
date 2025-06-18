@@ -10,8 +10,8 @@ import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import androidx.core.app.NotificationCompat
 import io.flutter.embedding.engine.FlutterEngineCache
-import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
+import android.util.Log  
 
 @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
 class MyNotificationListener : NotificationListenerService() {
@@ -19,79 +19,61 @@ class MyNotificationListener : NotificationListenerService() {
         const val CHANNEL_ID = "doitmoney_notification_listener"
         const val CHANNEL_NAME = "DoitMoney 알림 수집"
         const val FOREGROUND_ID = 1001
-
+        const val ENGINE_ID = "doitmoney_engine"
         const val DART_CHANNEL = "doitmoney.flutter.dev/notification"
         const val METHOD_ON_NOTIFICATION = "onNotificationPosted"
-        const val ENGINE_ID = "doitmoney_engine"
     }
 
     private lateinit var dartChannel: MethodChannel
 
     override fun onCreate() {
         super.onCreate()
-
-        // 1) NotificationChannel 생성 (Android O+)
+        // lockscreenVisibility 공개로
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val ch = NotificationChannel(
-                CHANNEL_ID,
-                CHANNEL_NAME,
-                NotificationManager.IMPORTANCE_LOW
-            ).apply {
-                description = "앱이 꺼져도 알림을 지속해서 수집하기 위한 포그라운드 서비스"
+            NotificationChannel(CHANNEL_ID, CHANNEL_NAME, NotificationManager.IMPORTANCE_LOW).apply {
+                description = "앱이 꺼져도 알림을 수집"
+                lockscreenVisibility = Notification.VISIBILITY_PUBLIC
+            }.also { ch ->
+                (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
+                  .createNotificationChannel(ch)
             }
-            (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
-                .createNotificationChannel(ch)
         }
-
-        // 2) 캐시된 FlutterEngine 꺼내기
-        val engine = FlutterEngineCache
-            .getInstance()
-            .get(ENGINE_ID)
-            ?: throw IllegalStateException("FlutterEngine not found in cache")
+        // FlutterEngine 캐싱 로직은 그대로…
+        val engine = FlutterEngineCache.getInstance().get(ENGINE_ID)
+            ?: throw IllegalStateException("FlutterEngine not found")
         dartChannel = MethodChannel(engine.dartExecutor.binaryMessenger, DART_CHANNEL)
 
-        // 3) 포그라운드 서비스로 시작
-        val notif: Notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("DoitMoney 알림 수집 중")
-            .setContentText("앱이 종료되어도 알림을 수집합니다")
-            .setSmallIcon(R.mipmap.ic_launcher)
-            .setOngoing(true)
-            .build()
-        startForeground(FOREGROUND_ID, notif)
+        // 포그라운드 서비스 알림도 PUBLIC 으로
+        startForeground(
+            FOREGROUND_ID,
+            NotificationCompat.Builder(this, CHANNEL_ID)
+              .setContentTitle("DoitMoney 알림 수집 중")
+              .setContentText("앱이 종료되어도 수집합니다")
+              .setSmallIcon(R.mipmap.ic_launcher)
+              .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+              .build()
+        )
     }
 
+    // ⚠ 여기서 override fun 키워드를 중복 쓰지 마세요
     override fun onNotificationPosted(sbn: StatusBarNotification) {
-        val notif = sbn.notification
+        val ex = sbn.notification.extras
+        val title       = ex.getString(Notification.EXTRA_TITLE) ?: ""
+        val textSummary = ex.getCharSequence(Notification.EXTRA_TEXT)?.toString().orEmpty()
+        val textBig     = ex.getCharSequence(Notification.EXTRA_BIG_TEXT)?.toString().orEmpty()
 
-        // 1) TITLE: extras 가 비어 있으면 tickerText 사용
-        val title = notif.extras
-            .getString(Notification.EXTRA_TITLE)
-            ?.takeIf { it.isNotBlank() }
-            ?: notif.tickerText?.toString()
-            ?: ""
+        // BigTextStyle 의 내용을 우선 쓰도록
+        val fullText = listOf(title, textBig.ifBlank { textSummary })
+            .filter { it.isNotBlank() }
+            .joinToString("\n")
 
-        // 2) TEXT: 먼저 EXTRA_TEXT, 그 다음에 BIG_TEXT, 마지막으로 tickerText
-        val text = notif.extras
-            .getCharSequence(Notification.EXTRA_TEXT)
-            ?.toString()
-            ?.takeIf { it.isNotBlank() }
-            ?: notif.extras
-                .getCharSequence(Notification.EXTRA_BIG_TEXT)
-                ?.toString()
-            ?: notif.tickerText?.toString()
-            ?: ""
-
-        val full = "$title\n$text"
-
-        // Dart 로 전달
+        Log.d("NLS", "📲 raw -> $fullText")
         dartChannel.invokeMethod(
             METHOD_ON_NOTIFICATION,
             mapOf(
                 "packageName" to sbn.packageName,
-                "title" to title,
-                "text" to text
+                "fullText"     to fullText
             )
         )
-    }  // ← onNotificationPosted 닫는 중괄호
-
-}  // ← 클래스 MyNotificationListener 닫는 중괄호
+    }
+}
