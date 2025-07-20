@@ -5,7 +5,7 @@ import 'package:doitmoney_flutter/features/more/screens/customer_service_page.da
 import 'package:doitmoney_flutter/features/more/screens/notification_alert_page.dart';
 import 'package:doitmoney_flutter/features/more/screens/privacy_policy_page.dart';
 import 'package:doitmoney_flutter/features/more/screens/terms_of_service_page.dart';
-import 'package:doitmoney_flutter/features/savings/screens/new_savings_goal_page.dart';
+import 'package:doitmoney_flutter/features/savings/screens/add_savings_goal_page.dart';
 import 'package:doitmoney_flutter/features/savings/screens/savings_page.dart';
 import 'package:doitmoney_flutter/features/transaction/screens/pdf_parsing_page.dart';
 import 'package:doitmoney_flutter/features/transaction/screens/upload_complete_page.dart';
@@ -191,7 +191,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'new',
             name: 'new_savings_goal',
-            builder: (context, state) => const NewSavingsGoalPage(),
+            builder: (context, state) => const AddSavingsGoalPage(),
           ),
         ],
       ),
