@@ -129,12 +129,25 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
       accountNumber: _selectedAccountObj!.accountNumber,
     );
 
-    if (widget.existing == null) {
-      await tx_svc.TransactionService.addTransaction(newTx);
-    } else {
-      await tx_svc.TransactionService.updateTransaction(newTx.id, newTx);
+    try {
+      if (widget.existing == null) {
+        await tx_svc.TransactionService.addTransaction(newTx);
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('거래가 저장되었습니다.')));
+      } else {
+        await tx_svc.TransactionService.updateTransaction(newTx.id, newTx);
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('거래가 수정되었습니다.')));
+      }
+      ref.invalidate(allTransactionsProvider);
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('오류: $e')));
+      return;
     }
-
     if (_isFixed && _transactionType == tx_svc.TransactionType.expense) {
       final fe = fx_svc.FixedExpense(
         id: 0,
@@ -147,8 +160,14 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage>
       );
       try {
         await fx_svc.FixedExpenseService.addFixedExpense(fe);
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('고정 지출이 등록되었습니다.')));
       } catch (e) {
         // 파싱 또는 서버 오류는 로그만
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('고정 지출 등록 실패: $e')));
         debugPrint('fixed-expense registration failed: $e');
       }
     }

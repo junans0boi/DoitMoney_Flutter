@@ -224,7 +224,7 @@ class _XlsxParsingPageState extends State<XlsxParsingPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('XLSX 파싱 중...')),
-      body: const SizedBox.shrink(),
+      body: const Center(child: CircularProgressIndicator()),
     );
   }
 }

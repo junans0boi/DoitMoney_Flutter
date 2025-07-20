@@ -1,9 +1,6 @@
-// lib/features/transaction/services/transaction_service.dart
-
-// ignore_for_file: unintended_html_in_doc_comment
-
 import 'dart:typed_data';
 import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
 import 'package:http_parser/http_parser.dart';
 import '../../../core/api/dio_client.dart';
 
@@ -39,34 +36,30 @@ class Transaction {
     String? description,
     String? accountName,
     String? accountNumber,
-  }) {
-    return Transaction(
-      id: id ?? this.id,
-      transactionDate: transactionDate ?? this.transactionDate,
-      transactionType: transactionType ?? this.transactionType,
-      category: category ?? this.category,
-      amount: amount ?? this.amount,
-      description: description ?? this.description,
-      accountName: accountName ?? this.accountName,
-      accountNumber: accountNumber ?? this.accountNumber,
-    );
-  }
+  }) => Transaction(
+    id: id ?? this.id,
+    transactionDate: transactionDate ?? this.transactionDate,
+    transactionType: transactionType ?? this.transactionType,
+    category: category ?? this.category,
+    amount: amount ?? this.amount,
+    description: description ?? this.description,
+    accountName: accountName ?? this.accountName,
+    accountNumber: accountNumber ?? this.accountNumber,
+  );
 
-  factory Transaction.fromJson(Map<String, dynamic> j) {
-    return Transaction(
-      id: j['id'] as int,
-      transactionDate: DateTime.parse(j['transactionDate'] as String),
-      transactionType: TransactionType.values.firstWhere(
-        (e) => e.name == (j['transactionType'] as String),
-        orElse: () => TransactionType.expense,
-      ),
-      category: j['category'] as String? ?? '',
-      amount: (j['amount'] as num).toInt(),
-      description: j['description'] as String? ?? '',
-      accountName: j['accountName'] as String? ?? '',
-      accountNumber: j['accountNumber'] as String? ?? '',
-    );
-  }
+  factory Transaction.fromJson(Map<String, dynamic> j) => Transaction(
+    id: j['id'] as int,
+    transactionDate: DateTime.parse(j['transactionDate'] as String),
+    transactionType: TransactionType.values.firstWhere(
+      (e) => e.name == (j['transactionType'] as String),
+      orElse: () => TransactionType.expense,
+    ),
+    category: j['category'] as String? ?? '',
+    amount: (j['amount'] as num).toInt(),
+    description: j['description'] as String? ?? '',
+    accountName: j['accountName'] as String? ?? '',
+    accountNumber: j['accountNumber'] as String? ?? '',
+  );
 
   Map<String, dynamic> toJson() => {
     'transactionDate': transactionDate.toIso8601String(),
@@ -81,30 +74,51 @@ class Transaction {
 
 class TransactionService {
   static Future<List<Transaction>> fetchTransactions() async {
-    final res = await dio.get('/transactions');
-    return (res.data as List)
-        .map((e) => Transaction.fromJson(e as Map<String, dynamic>))
-        .toList();
-  }
-
-  static Future<Transaction> addTransaction(Transaction tx) async {
-    final res = await dio.post('/transactions', data: tx.toJson());
-    return Transaction.fromJson(res.data as Map<String, dynamic>);
-  }
-
-  static Future<Transaction> updateTransaction(int id, Transaction tx) async {
-    final res = await dio.put('/transactions/$id', data: tx.toJson());
-    return Transaction.fromJson(res.data as Map<String, dynamic>);
-  }
-
-  static Future<void> deleteTransaction(int id) async {
-    final res = await dio.delete('/transactions/$id');
-    if (res.statusCode != 204) {
-      throw Exception('삭제 실패: ${res.statusCode}');
+    try {
+      final res = await dio.get('/transactions');
+      return (res.data as List)
+          .map((e) => Transaction.fromJson(e as Map<String, dynamic>))
+          .toList();
+    } on DioError catch (e) {
+      // 로깅
+      debugPrint('[FetchTx Error] ${e.response?.statusCode}: ${e.message}');
+      // 사용자에게 알림
+      throw Exception('거래 내역 로드에 실패했습니다.');
     }
   }
 
-  /// 암호화된 XLSX를 서버로 보내서 복호화·파싱 후 List<List<String>>으로 반환
+  static Future<Transaction> addTransaction(Transaction tx) async {
+    try {
+      final res = await dio.post('/transactions', data: tx.toJson());
+      return Transaction.fromJson(res.data as Map<String, dynamic>);
+    } on DioError catch (e) {
+      debugPrint('[AddTx Error] ${e.response?.statusCode}: ${e.message}');
+      throw Exception('거래 추가에 실패했습니다.');
+    }
+  }
+
+  static Future<Transaction> updateTransaction(int id, Transaction tx) async {
+    try {
+      final res = await dio.put('/transactions/$id', data: tx.toJson());
+      return Transaction.fromJson(res.data as Map<String, dynamic>);
+    } on DioError catch (e) {
+      debugPrint('[UpdateTx Error] ${e.response?.statusCode}: ${e.message}');
+      throw Exception('거래 수정에 실패했습니다.');
+    }
+  }
+
+  static Future<void> deleteTransaction(int id) async {
+    try {
+      final res = await dio.delete('/transactions/$id');
+      if (res.statusCode != 204) {
+        throw Exception();
+      }
+    } on DioError catch (e) {
+      debugPrint('[DeleteTx Error] ${e.response?.statusCode}: ${e.message}');
+      throw Exception('거래 삭제에 실패했습니다.');
+    }
+  }
+
   static Future<List<List<String>>> decryptExcel(
     Uint8List fileBytes,
     String fileName,
@@ -132,15 +146,13 @@ class TransactionService {
       final sheets = resp.data as List;
       final rows = <List<String>>[];
       for (final rawSheet in sheets) {
-        final sheet = rawSheet as List;
-        for (final rawRow in sheet) {
-          final row = (rawRow as List).map((c) => c.toString()).toList();
-          rows.add(row);
+        for (final rawRow in rawSheet as List) {
+          rows.add((rawRow as List).map((c) => c.toString()).toList());
         }
       }
       return rows;
-    } else {
-      throw Exception('서버 오류: ${resp.statusMessage ?? resp.statusCode}');
     }
+
+    throw Exception('서버 오류: ${resp.statusMessage ?? resp.statusCode}');
   }
 }

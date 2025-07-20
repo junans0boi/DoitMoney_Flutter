@@ -1,4 +1,6 @@
 //lib/services/news_service.dart
+import 'package:flutter/material.dart';
+
 import '../../../core/api/dio_client.dart';
 
 class NewsArticle {
@@ -20,15 +22,23 @@ class NewsArticle {
 }
 
 class NewsService {
-  /// 오늘자 금융 뉴스 불러오기
   static Future<List<NewsArticle>> fetchTodayNews() async {
-    final res = await dio.get('/news/today');
-    if (res.statusCode != 200) {
-      throw Exception('뉴스 로드 실패 (${res.statusCode})');
+    try {
+      final res = await dio.get('/news/today');
+      if (res.statusCode != 200 || res.data is! List) {
+        throw Exception();
+      }
+      return (res.data as List).map((e) {
+        final map = e as Map<String, dynamic>;
+        return NewsArticle(
+          title: map['title'] as String,
+          link: map['link'] as String,
+          thumbnail: map['thumbnail'] as String? ?? 'assets/images/default.png',
+        );
+      }).toList();
+    } catch (e) {
+      debugPrint('[뉴스 로드 실패] $e');
+      return [];
     }
-    final data = res.data as List;
-    return data
-        .map((e) => NewsArticle.fromJson(e as Map<String, dynamic>))
-        .toList();
   }
 }

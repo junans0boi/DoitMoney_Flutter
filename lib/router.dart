@@ -5,6 +5,8 @@ import 'package:doitmoney_flutter/features/more/screens/customer_service_page.da
 import 'package:doitmoney_flutter/features/more/screens/notification_alert_page.dart';
 import 'package:doitmoney_flutter/features/more/screens/privacy_policy_page.dart';
 import 'package:doitmoney_flutter/features/more/screens/terms_of_service_page.dart';
+import 'package:doitmoney_flutter/features/savings/screens/new_savings_goal_page.dart';
+import 'package:doitmoney_flutter/features/savings/screens/savings_page.dart';
 import 'package:doitmoney_flutter/features/transaction/screens/pdf_parsing_page.dart';
 import 'package:doitmoney_flutter/features/transaction/screens/upload_complete_page.dart';
 import 'package:doitmoney_flutter/features/transaction/screens/xlsx_parsing_page.dart';
@@ -13,7 +15,7 @@ import 'package:doitmoney_flutter/features/transaction/services/transaction_serv
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:doitmoney_flutter/features/advisor/screens/chat_screen.dart'; // 추가
+import 'package:doitmoney_flutter/features/advisor/screens/chat_screen.dart'; //
 
 import 'features/auth/providers/auth_provider.dart';
 import 'core/utils/router_refresh_notifier.dart';
@@ -150,7 +152,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/transaction/ocr',
-        builder: (_, __) => const ImportTransactionsPage(),
+        builder: (_, __) => ImportTransactionsPage(),
       ),
       GoRoute(
         path: '/xlsx-preview',
@@ -179,6 +181,19 @@ final routerProvider = Provider<GoRouter>((ref) {
             duplicateCount: args['duplicateCount'] as int,
           );
         },
+      ),
+      GoRoute(
+        path: '/savings',
+        name: 'savings',
+        builder: (context, state) => const SavingsPage(),
+        routes: [
+          // /savings/new 로 NewGoalPage로 이동
+          GoRoute(
+            path: 'new',
+            name: 'new_savings_goal',
+            builder: (context, state) => const NewSavingsGoalPage(),
+          ),
+        ],
       ),
     ],
   );

@@ -57,13 +57,20 @@ class _AddFixedExpensePageState extends ConsumerState<AddFixedExpensePage> {
       fromAccountId: _fromAccountId!,
     );
 
-    if (widget.editing != null) {
-      await FixedExpenseService.updateFixedExpense(fe);
-    } else {
-      await FixedExpenseService.addFixedExpense(fe);
+    try {
+      if (widget.editing != null) {
+        await FixedExpenseService.updateFixedExpense(fe);
+      } else {
+        await FixedExpenseService.addFixedExpense(fe);
+      }
+      if (!mounted) return;
+      Navigator.pop(context, true);
+    } catch (e) {
+      // 실패 시 사용자에게 알려줍니다.
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('고정 지출 저장에 실패했습니다:\n$e')));
     }
-
-    if (mounted) Navigator.pop(context, true);
   }
 
   @override
@@ -80,30 +87,24 @@ class _AddFixedExpensePageState extends ConsumerState<AddFixedExpensePage> {
           key: _formKey,
           child: ListView(
             children: [
-              // 계좌 선택
+              // ▶ 계좌 선택 ▶
               accountsAsync.when(
                 data: (list) {
-                  // if we have a fromAccountId, find it (or fall back to first)
-                  Account? initial =
-                      _fromAccountId != null
-                          ? list.firstWhere(
-                            (a) => a.id == _fromAccountId,
-                            orElse: () => list.first,
-                          )
-                          : null;
-
+                  // 선택 중인 계좌가 없으면 무조건 첫 번째로
+                  final initial = list.firstWhere(
+                    (a) => a.id == _fromAccountId,
+                    orElse: () => list.first,
+                  );
                   return DropdownButtonFormField<Account>(
                     decoration: const InputDecoration(labelText: '출금 계좌'),
-                    items:
-                        list
-                            .map(
-                              (a) => DropdownMenuItem(
-                                value: a,
-                                child: Text(a.institutionName),
-                              ),
-                            )
-                            .toList(),
                     value: initial,
+                    items:
+                        list.map((a) {
+                          return DropdownMenuItem(
+                            value: a,
+                            child: Text(a.institutionName),
+                          );
+                        }).toList(),
                     onChanged:
                         (a) => setState(() {
                           _fromAccountId = a?.id;
@@ -112,7 +113,14 @@ class _AddFixedExpensePageState extends ConsumerState<AddFixedExpensePage> {
                   );
                 },
                 loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, _) => Text('오류: $e'),
+                error:
+                    (e, _) => Center(
+                      child: Text(
+                        '계좌 정보를 불러오는 중 오류가 발생했습니다.\n$e',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: Colors.red),
+                      ),
+                    ),
               ),
 
               const SizedBox(height: 16),

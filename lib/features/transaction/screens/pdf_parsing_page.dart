@@ -276,7 +276,7 @@ class _PdfParsingPageState extends State<PdfParsingPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('PDF 파싱 중...')),
-      body: const SizedBox.shrink(),
+      body: const Center(child: CircularProgressIndicator()),
     );
   }
 }

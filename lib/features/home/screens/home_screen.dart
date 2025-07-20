@@ -11,6 +11,7 @@ import '../../../constants/colors.dart';
 import '../../../shared/widgets/news_banner.dart';
 import '../../fixed_expense/providers/fixed_expense_provider.dart';
 import '../../transaction/services/transaction_service.dart';
+import '../../savings/providers/savings_provider.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -26,7 +27,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     final month = ref.watch(selectedMonthProvider);
     final txs = ref.watch(filteredTransactionsProvider);
-    final fixedAsync = ref.watch(fixedExpensesProvider);
+    final savingsAsync = ref.watch(savingsGoalsProvider);
 
     // 수입/지출 합계 계산
     final totalIn = txs
@@ -104,26 +105,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   // --------------------------------------------------------------------------------
                   const SizedBox(height: 24),
 
-                  // ─── 정기지출 현황 카드 ───
-                  fixedAsync.when(
-                    data: (list) {
-                      final today = DateTime.now().day;
-                      final upcoming = list
-                          .where((e) => e.dayOfMonth > today)
-                          .fold<int>(0, (s, e) => s + e.amount);
-                      final completed = list
-                          .where((e) => e.dayOfMonth <= today)
-                          .fold<int>(0, (s, e) => s + e.amount);
-
-                      return _StatusCard(
-                        title: '정기지출',
-                        items: [
-                          _StatusItem(label: '지출 예정', amount: upcoming),
-                          _StatusItem(label: '지출 완료', amount: completed),
-                        ],
-                        onTap: () => context.push('/fixed-expense'),
-                      );
-                    },
+                  // ─── 저축 목표 카드 ───
+                  savingsAsync.when(
+                    data:
+                        (goals) => _StatusCard(
+                          title: '저축 목표',
+                          items: [
+                            _StatusItem(
+                              label: '총 목표 수',
+                              amount: goals.length,
+                              placeholder: '목표를 추가해보세요',
+                            ),
+                            _StatusItem(
+                              label: '진행 중',
+                              amount:
+                                  goals.where((g) => g.progress < 1.0).length,
+                              placeholder: '진행 중인 목표가 없습니다',
+                            ),
+                          ],
+                          onTap: () => context.push('/savings'),
+                        ),
                     loading:
                         () => const Center(child: CircularProgressIndicator()),
                     error:
@@ -135,7 +136,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           ),
                         ),
                   ),
-
                   const SizedBox(height: 16),
 
                   // ─── 변동지출 카드 ───
